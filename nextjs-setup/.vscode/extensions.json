@@ -1,0 +1,10 @@
+{
+    "recommendations": [
+      "dbaeumer.vscode-eslint",
+      "esbenp.prettier-vscode",
+      "bradlc.vscode-tailwindcss",
+      "amatiasq.sort-imports",
+      "streetsidesoftware.code-spell-checker"
+    ]
+  }
+  
