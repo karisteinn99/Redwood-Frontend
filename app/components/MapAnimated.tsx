@@ -7,7 +7,7 @@ const Lottie = dynamic(() => import('lottie-react'), { ssr: false });
 
 const MapAnimated = () => {
   const [animationData, setAnimationData] = useState<any>(null);
-  const lottieRef = useRef();
+  const lottieRef = useRef(null);
 
   // Lazy load the animation JSON only when the component mounts
   useEffect(() => {
@@ -24,10 +24,7 @@ const MapAnimated = () => {
         lottieRef={lottieRef}
         className="h-full w-full"
         animationData={animationData}
-        speed={0.1}
-        onDOMLoaded={() => {
-          lottieRef.current.setSpeed(0.25);
-        }}
+        loop={true}
       />
     </div>
   );
