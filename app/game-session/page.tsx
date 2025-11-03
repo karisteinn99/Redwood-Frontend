@@ -2,11 +2,9 @@
 
 import dynamic from 'next/dynamic';
 
-// Dynamically import the page content and disable SSR
-const GameSessionPageContent = dynamic(() => import('./game-session-content'), {
-  ssr: false, // Disable server-side rendering
-});
+// Dynamically import the WorldMap component and disable SSR
+const WorldMap = dynamic(() => import('./world-map'), { ssr: false });
 
 export default function GameSessionPage() {
-  return <GameSessionPageContent />;
+  return <WorldMap />;
 }

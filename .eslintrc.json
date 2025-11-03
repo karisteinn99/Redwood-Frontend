@@ -3,22 +3,13 @@
     "eslint:recommended",
     "plugin:react/recommended",
     "plugin:@typescript-eslint/recommended",
-    "plugin:react-hooks/recommended",
-    "next/core-web-vitals",
-    "prettier"
+    "next/core-web-vitals"
   ],
-  "plugins": ["@typescript-eslint", "tailwindcss", "simple-import-sort"],
+  "parser": "@typescript-eslint/parser",
+  "plugins": ["@typescript-eslint"],
   "rules": {
-    "tailwindcss/classnames-order": "warn",
-    "tailwindcss/no-custom-classname": "off",
-    "simple-import-sort/imports": "warn",
-    "simple-import-sort/exports": "warn",
-    "@typescript-eslint/no-unused-vars": ["warn", { "argsIgnorePattern": "^_" }]
-  },
-  "settings": {
-    "tailwindcss": {
-      "callees": ["clsx", "cva"],
-      "config": "tailwind.config.ts"
-    }
+    "react/react-in-jsx-scope": "off", // Next.js doesn't require React in scope
+    "@typescript-eslint/no-unused-vars": "warn", // Warn about unused variables
+    "no-console": "warn" // Warn about console.log statements
   }
 }

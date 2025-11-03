@@ -1,13 +1,14 @@
+import { useEffect, useRef, useState } from 'react';
+
 import { LottieRefCurrentProps } from 'lottie-react';
 import dynamic from 'next/dynamic';
-import { useEffect, useRef, useState } from 'react';
 
 // Dynamically import Lottie only when needed
 const Lottie = dynamic(() => import('lottie-react'), { ssr: false });
 
 const MapAnimated = () => {
   const [animationData, setAnimationData] = useState<unknown>(null);
-  const lottieRef = useRef<LottieRefCurrentProps | null>(null); // Use the correct type from lottie-react
+  const lottieRef = useRef<LottieRefCurrentProps | null>(null);
 
   // Lazy load the animation JSON only when the component mounts
   useEffect(() => {
@@ -32,6 +33,12 @@ const MapAnimated = () => {
         lottieRef={lottieRef} // Pass the ref to the Lottie component
         className="h-full w-full"
         animationData={animationData}
+        onDOMLoaded={() => {
+          if (lottieRef.current) {
+            lottieRef.current.setSpeed(0.1); // Set initial speed
+            lottieRef.current.setSpeed(0.25); // Adjust speed after DOM is loaded
+          }
+        }}
       />
     </div>
   );
