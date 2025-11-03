@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+
 import MapAnimated from './components/MapAnimated';
 import Button from './components/button';
 
