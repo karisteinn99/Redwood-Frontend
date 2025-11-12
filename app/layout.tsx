@@ -3,9 +3,9 @@ import './globals.css';
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: "It's over Anakin, I have the high ground",
+  title: 'Where?',
   description:
-    'This is a setup page to be used for multiple projects...hopefully',
+    'Where? - Seek. Locate. Conquer. Embark on an epic adventure in a vast open world filled with mysteries, challenges, and endless possibilities. Your journey begins here.',
 };
 
 export default function RootLayout({
