@@ -13,6 +13,7 @@
     "db:seed": "tsx db/seed.ts"
   },
   "dependencies": {
+    "@neondatabase/serverless": "^1.0.2",
     "@radix-ui/react-slot": "^1.2.4",
     "@vercel/postgres": "^0.10.0",
     "better-sqlite3": "^12.5.0",

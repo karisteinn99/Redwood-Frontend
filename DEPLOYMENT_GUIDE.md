@@ -1,4 +1,76 @@
-# Vercel Postgres Setup Guide
+# Neon Database Setup Guide
+
+## Steps to Deploy with Neon Database
+
+### 1. Deploy to Vercel
+
+1. Push your code to GitHub
+2. Connect your repository to Vercel
+3. Deploy the application
+
+### 2. Set Up Environment Variables
+
+Based on the Neon tutorial you followed, you should have:
+
+1. A `DATABASE_URL` environment variable from Neon
+2. Run this command to pull the variables locally:
+   ```bash
+   vercel env pull .env.development.local
+   ```
+
+### 3. Run Database Migrations
+
+After you have the environment variables set up:
+
+#### For Local Development:
+
+```bash
+# Generate migrations (if not done already)
+pnpm db:generate
+
+# Run migrations
+pnpm db:migrate
+```
+
+#### For Production:
+
+The migrations will run automatically during the Vercel build process.
+
+### 4. Seed the Database (Optional)
+
+Once migrations are run, you can seed the database with initial questions:
+
+```bash
+pnpm db:seed
+```
+
+## Important Notes
+
+- **Neon Database**: You're using Neon, which is a PostgreSQL-compatible serverless database
+- **Connection**: Uses HTTP-based connection via @neondatabase/serverless
+- **Environment Variable**: Uses `DATABASE_URL` (not `POSTGRES_URL`)
+- **Serverless**: Perfect for Vercel deployments with automatic scaling
+
+## Files Updated for Neon PostgreSQL
+
+- ✅ `db/index.ts` - Updated to use Neon serverless driver
+- ✅ `db/schema.ts` - Converted to PostgreSQL schema (compatible with Neon)
+- ✅ `drizzle.config.ts` - Updated for PostgreSQL dialect with DATABASE_URL
+- ✅ `package.json` - Added @neondatabase/serverless dependency
+- ✅ Generated PostgreSQL migrations
+
+## What's Ready
+
+Your application is now ready for Vercel deployment with Neon database! 🎉
+
+The database connection will work automatically once you have the `DATABASE_URL` environment variable set up in Vercel.
+
+## Next Steps
+
+1. Make sure your Neon database `DATABASE_URL` is set in your Vercel project environment variables
+2. Push your code to trigger a deployment
+3. The migrations will run automatically during build
+4. Optionally run the seed script to add initial questions
 
 ## Steps to Deploy with Vercel Postgres
 

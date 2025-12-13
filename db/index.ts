@@ -1,8 +1,11 @@
-import { sql } from '@vercel/postgres';
-import { drizzle } from 'drizzle-orm/vercel-postgres';
+import { neon } from '@neondatabase/serverless';
+import { drizzle } from 'drizzle-orm/neon-http';
 import * as schema from './schema';
 
-// Create Drizzle database instance with Vercel Postgres
+// Create Neon database connection
+const sql = neon(process.env.DATABASE_URL!);
+
+// Create Drizzle database instance with Neon
 export const db = drizzle(sql, { schema });
 
 // Utility function to calculate distance between two coordinates (Haversine formula)
@@ -32,9 +35,3 @@ export function calculateDistance(
 function toRadians(degrees: number): number {
   return degrees * (Math.PI / 180);
 }
-
-// Close database connection gracefully
-process.on('SIGINT', () => {
-  sqlite.close();
-  process.exit(0);
-});
