@@ -1,6 +1,6 @@
 import { db } from './index';
-import { questions } from './schema';
 import type { NewQuestion } from './schema';
+import { questions } from './schema';
 
 const initialQuestions: NewQuestion[] = [
   {

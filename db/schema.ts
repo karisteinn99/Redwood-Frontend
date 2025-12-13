@@ -1,12 +1,11 @@
-import { sql } from 'drizzle-orm';
-import { 
-  integer, 
-  real, 
-  pgTable, 
-  text, 
-  timestamp,
+import {
+  boolean,
+  integer,
+  pgTable,
+  real,
   serial,
-  boolean
+  text,
+  timestamp,
 } from 'drizzle-orm/pg-core';
 
 // Questions table - stores geography questions with correct coordinates

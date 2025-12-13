@@ -3,22 +3,26 @@
 ## Steps to Deploy with Vercel Postgres
 
 ### 1. Deploy to Vercel
+
 1. Push your code to GitHub
 2. Connect your repository to Vercel
 3. Deploy the application
 
 ### 2. Add Vercel Postgres Database
+
 1. Go to your project dashboard on Vercel
 2. Click on the "Storage" tab
-3. Click "Create Database" 
+3. Click "Create Database"
 4. Select "Postgres"
 5. Choose "Hobby" (Free tier - 0.5GB storage, 1 billion queries/month)
 6. Click "Create & Continue"
 
 ### 3. Connect Database to Your Project
+
 1. Vercel will automatically add the following environment variables:
+
    - `POSTGRES_URL`
-   - `POSTGRES_PRISMA_URL` 
+   - `POSTGRES_PRISMA_URL`
    - `POSTGRES_URL_NO_SSL`
    - `POSTGRES_URL_NON_POOLING`
    - `POSTGRES_USER`
@@ -29,9 +33,11 @@
 2. Your app will automatically use `POSTGRES_URL` (already configured in `drizzle.config.ts`)
 
 ### 4. Run Database Migrations
+
 After deployment, you have two options:
 
 #### Option A: Use Vercel CLI (Recommended)
+
 ```bash
 # Install Vercel CLI if you haven't
 npm i -g vercel
@@ -48,7 +54,9 @@ pnpm db:migrate
 ```
 
 #### Option B: Add Migration to Build Process
+
 Add this to your `package.json` scripts:
+
 ```json
 {
   "scripts": {
@@ -58,7 +66,9 @@ Add this to your `package.json` scripts:
 ```
 
 ### 5. Seed the Database (Optional)
+
 Once migrations are run, you can seed the database:
+
 ```bash
 pnpm db:seed
 ```
@@ -71,6 +81,7 @@ pnpm db:seed
 - **Backups**: Automatic daily backups included
 
 ## Files Updated for PostgreSQL
+
 - ✅ `db/index.ts` - Updated to use Vercel Postgres
 - ✅ `db/schema.ts` - Converted from SQLite to PostgreSQL schema
 - ✅ `drizzle.config.ts` - Updated for PostgreSQL dialect
@@ -78,6 +89,7 @@ pnpm db:seed
 - ✅ Generated fresh PostgreSQL migrations
 
 ## What's Ready
+
 Your application is now ready for Vercel deployment with PostgreSQL! 🎉
 
 The database will be created automatically when you add Vercel Postgres storage to your project.
