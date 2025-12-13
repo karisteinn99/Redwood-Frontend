@@ -3,24 +3,7 @@ import Button from './button';
 
 const MenuPage = () => {
   return (
-    <div className="bg-space relative min-h-screen w-full overflow-hidden">
-      {/* Background Earth Image */}
-      <div className="absolute inset-0">
-        <img
-          src="https://images.unsplash.com/photo-1446776653964-20c1d3a81b06?q=80&w=2070&auto=format&fit=crop"
-          alt="Earth from space"
-          className="h-full w-full object-cover opacity-80"
-          style={
-            {
-              imageRendering: 'crisp-edges',
-            } as React.CSSProperties
-          }
-        />
-        {/* Dark overlay for better contrast */}
-        <div className="absolute inset-0 bg-black/40" />
-      </div>
-
-      {/* Content */}
+    <div className="animate-fade-in">
       <div className="relative z-10 flex min-h-screen flex-col items-center justify-center px-4">
         {/* Game Title */}
         <div className="mb-12 text-center">

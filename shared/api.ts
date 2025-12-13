@@ -3,12 +3,12 @@ export const fetchTestMessage = async (): Promise<{
   status: string;
 }> => {
   try {
-    const response = await fetch('http://localhost:8000/homescreen/basic/');
+    const response = await fetch('/api/health');
     if (!response.ok) {
       throw new Error('Network response was not ok');
     }
     const data = await response.json();
-    return data;
+    return { message: 'Database connected successfully!', status: data.status };
   } catch (error) {
     console.error('Error fetching data:', error);
     return { message: 'Something went wrong', status: 'error' };
@@ -20,9 +20,7 @@ export const getQuestions = async (): Promise<
   { id: number; question: string }[]
 > => {
   try {
-    const response = await fetch(
-      'http://localhost:8000/game-session/api/questions/'
-    );
+    const response = await fetch('/api/questions');
     if (!response.ok) {
       throw new Error('Failed to fetch questions');
     }
@@ -40,19 +38,19 @@ export const postAnswer = async (
   answer: { lat: number; long: number }
 ): Promise<{ distance_km: number } | { error: string }> => {
   try {
-    const response = await fetch(
-      'http://localhost:8000/game-session/api/answer/',
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
+    const response = await fetch('/api/answers', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        questionId,
+        answer: {
+          lat: answer.lat,
+          lng: answer.long, // Convert 'long' to 'lng' for consistency
         },
-        body: JSON.stringify({
-          question_id: questionId,
-          answer,
-        }),
-      }
-    );
+      }),
+    });
 
     if (!response.ok) {
       throw new Error('Failed to post answer');

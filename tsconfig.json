@@ -2,22 +2,13 @@
   "compilerOptions": {
     "baseUrl": ".",
     "paths": {
-      "@app/*": [
-        "app/*"
-      ],
-      "@shared/*": [
-        "shared/*"
-      ],
-      "@components/*": [
-        "app/components/*"
-      ]
+      "@/*": ["./*"],
+      "@app/*": ["app/*"],
+      "@shared/*": ["shared/*"],
+      "@components/*": ["app/components/*"]
     },
     "target": "esnext", // Modern target for better performance
-    "lib": [
-      "dom",
-      "dom.iterable",
-      "esnext"
-    ],
+    "lib": ["dom", "dom.iterable", "esnext"],
     "strict": true, // Enforces strict type-checking
     "module": "esnext",
     "moduleResolution": "node",
@@ -25,7 +16,7 @@
     "esModuleInterop": true,
     "skipLibCheck": true, // Speeds up builds by skipping type checks on libraries
     "forceConsistentCasingInFileNames": true,
-    "jsx": "preserve", // Use the new JSX runtime for React 17+
+    "jsx": "react-jsx", // Use the new JSX runtime for React 17+
     "allowJs": true,
     "noEmit": true,
     "incremental": true,
@@ -40,9 +31,8 @@
     "**/*.ts",
     "**/*.tsx",
     "next-env.d.ts",
-    ".next/types/**/*.ts"
+    ".next/types/**/*.ts",
+    ".next/dev/types/**/*.ts"
   ],
-  "exclude": [
-    "node_modules"
-  ]
+  "exclude": ["node_modules"]
 }
