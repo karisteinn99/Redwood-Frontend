@@ -1,12 +1,9 @@
-import Database from 'better-sqlite3';
-import { drizzle } from 'drizzle-orm/better-sqlite3';
+import { sql } from '@vercel/postgres';
+import { drizzle } from 'drizzle-orm/vercel-postgres';
 import * as schema from './schema';
 
-// Create SQLite database file
-const sqlite = new Database('./db/game.sqlite');
-
-// Create Drizzle database instance
-export const db = drizzle(sqlite, { schema });
+// Create Drizzle database instance with Vercel Postgres
+export const db = drizzle(sql, { schema });
 
 // Utility function to calculate distance between two coordinates (Haversine formula)
 export function calculateDistance(

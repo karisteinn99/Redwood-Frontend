@@ -1,9 +1,17 @@
 import { sql } from 'drizzle-orm';
-import { integer, real, sqliteTable, text } from 'drizzle-orm/sqlite-core';
+import { 
+  integer, 
+  real, 
+  pgTable, 
+  text, 
+  timestamp,
+  serial,
+  boolean
+} from 'drizzle-orm/pg-core';
 
 // Questions table - stores geography questions with correct coordinates
-export const questions = sqliteTable('questions', {
-  id: integer('id').primaryKey({ autoIncrement: true }),
+export const questions = pgTable('questions', {
+  id: serial('id').primaryKey(),
   question: text('question').notNull(),
   correctLat: real('correct_lat').notNull(),
   correctLng: real('correct_lng').notNull(),
@@ -11,27 +19,23 @@ export const questions = sqliteTable('questions', {
     'medium'
   ),
   category: text('category').default('geography'),
-  createdAt: integer('created_at', { mode: 'timestamp' }).default(
-    sql`(unixepoch())`
-  ),
+  createdAt: timestamp('created_at').defaultNow(),
 });
 
 // Game sessions table - tracks individual game sessions
-export const gameSessions = sqliteTable('game_sessions', {
-  id: integer('id').primaryKey({ autoIncrement: true }),
+export const gameSessions = pgTable('game_sessions', {
+  id: serial('id').primaryKey(),
   playerName: text('player_name'),
   totalScore: real('total_score').default(0), // Total distance in km
   questionsAnswered: integer('questions_answered').default(0),
-  isCompleted: integer('is_completed', { mode: 'boolean' }).default(false),
-  createdAt: integer('created_at', { mode: 'timestamp' }).default(
-    sql`(unixepoch())`
-  ),
-  completedAt: integer('completed_at', { mode: 'timestamp' }),
+  isCompleted: boolean('is_completed').default(false),
+  createdAt: timestamp('created_at').defaultNow(),
+  completedAt: timestamp('completed_at'),
 });
 
 // Answers table - stores individual question answers and their scores
-export const answers = sqliteTable('answers', {
-  id: integer('id').primaryKey({ autoIncrement: true }),
+export const answers = pgTable('answers', {
+  id: serial('id').primaryKey(),
   sessionId: integer('session_id')
     .references(() => gameSessions.id)
     .notNull(),
@@ -41,19 +45,15 @@ export const answers = sqliteTable('answers', {
   answerLat: real('answer_lat').notNull(),
   answerLng: real('answer_lng').notNull(),
   distanceKm: real('distance_km').notNull(),
-  answeredAt: integer('answered_at', { mode: 'timestamp' }).default(
-    sql`(unixepoch())`
-  ),
+  answeredAt: timestamp('answered_at').defaultNow(),
 });
 
 // Admin users table - simple admin authentication
-export const adminUsers = sqliteTable('admin_users', {
-  id: integer('id').primaryKey({ autoIncrement: true }),
+export const adminUsers = pgTable('admin_users', {
+  id: serial('id').primaryKey(),
   username: text('username').unique().notNull(),
   hashedPassword: text('hashed_password').notNull(),
-  createdAt: integer('created_at', { mode: 'timestamp' }).default(
-    sql`(unixepoch())`
-  ),
+  createdAt: timestamp('created_at').defaultNow(),
 });
 
 // Types for TypeScript
