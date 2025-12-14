@@ -1,4 +1,5 @@
 import Image from 'next/image';
+import ToastProvider from './components/toast';
 import './globals.css';
 
 import type { Metadata } from 'next';
@@ -46,6 +47,9 @@ export default function RootLayout({
 
         {/* Dark overlay for better contrast - Layer 5 */}
         <div className="pointer-events-none fixed inset-0 z-5 bg-black/40" />
+
+        {/* Toast Provider - Layer 50 */}
+        <ToastProvider />
 
         {/* Page Content - Layer 10 */}
         <div className="relative z-10">{children}</div>

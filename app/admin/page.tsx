@@ -1,6 +1,7 @@
 'use client';
 
 import Button from '@/app/components/button';
+import { showErrorToast, showSuccessToast } from '@/app/components/toast';
 import { useState } from 'react';
 
 interface Question {
@@ -24,7 +25,6 @@ export default function AdminDashboard() {
     category: 'geography',
   });
   const [bulkText, setBulkText] = useState('');
-  const [message, setMessage] = useState('');
 
   // ChatGPT template for question generation
   const chatGPTTemplate = `Please generate geography questions in this exact JSON format:
@@ -61,11 +61,11 @@ Example:
   const copyTemplate = async () => {
     try {
       await navigator.clipboard.writeText(chatGPTTemplate);
-      setMessage(
+      showSuccessToast(
         'Template copied to clipboard! Now ask ChatGPT to generate questions using this format.'
       );
     } catch (error) {
-      setMessage('Error copying to clipboard: ' + error);
+      showErrorToast('Error copying to clipboard: ' + error);
     }
   };
 
@@ -77,7 +77,7 @@ Example:
       const data = await response.json();
       setQuestions(data);
     } catch (error) {
-      setMessage('Error fetching questions: ' + error);
+      showErrorToast('Error fetching questions: ' + error);
     } finally {
       setLoading(false);
     }
@@ -102,7 +102,7 @@ Example:
       });
 
       if (response.ok) {
-        setMessage('Question added successfully!');
+        showSuccessToast('Question added successfully!');
         setNewQuestion({
           question: '',
           correctLat: '',
@@ -113,10 +113,10 @@ Example:
         fetchQuestions();
       } else {
         const error = await response.json();
-        setMessage('Error: ' + error.error);
+        showErrorToast('Error: ' + error.error);
       }
     } catch (error) {
-      setMessage('Error adding question: ' + error);
+      showErrorToast('Error adding question: ' + error);
     } finally {
       setLoading(false);
     }
@@ -125,7 +125,7 @@ Example:
   // Bulk import questions from CSV/JSON
   const bulkImport = async () => {
     if (!bulkText.trim()) {
-      setMessage('Please enter questions data');
+      showErrorToast('Please enter questions data');
       return;
     }
 
@@ -160,15 +160,15 @@ Example:
 
       if (response.ok) {
         const result = await response.json();
-        setMessage(result.message);
+        showSuccessToast(result.message);
         setBulkText('');
         fetchQuestions();
       } else {
         const error = await response.json();
-        setMessage('Error: ' + error.error);
+        showErrorToast('Error: ' + error.error);
       }
     } catch (error) {
-      setMessage('Error importing questions: ' + error);
+      showErrorToast('Error importing questions: ' + error);
     } finally {
       setLoading(false);
     }
@@ -178,18 +178,6 @@ Example:
     <div className="bg-gray-50 p-4 md:p-8">
       <div className="mx-auto max-w-6xl space-y-8">
         <h1 className="text-3xl font-bold text-gray-900">Admin Dashboard</h1>
-
-        {message && (
-          <div
-            className={`rounded-md p-4 ${
-              message.includes('Error')
-                ? 'border border-red-200 bg-red-50 text-red-700'
-                : 'border border-green-200 bg-green-50 text-green-700'
-            }`}
-          >
-            {message}
-          </div>
-        )}
 
         <div className="mb-8 rounded-lg border border-gray-200 bg-white p-6 shadow-md">
           <h2 className="mb-4 text-xl font-semibold text-gray-900">
