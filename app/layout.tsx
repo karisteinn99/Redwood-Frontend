@@ -16,7 +16,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className="bg-gray-50 relative min-h-screen">
+      <body className="relative min-h-screen bg-gray-50">
         {/* Toast Provider - Layer 50 */}
         <ToastProvider />
 
