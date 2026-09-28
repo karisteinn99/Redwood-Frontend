@@ -1,5 +1,7 @@
+'use client';
+
 import { QRCodeSVG } from 'qrcode.react';
-import type { RefObject } from 'react';
+import { useEffect, useState, type RefObject } from 'react';
 
 import type { Player } from '@shared/party-types';
 
@@ -9,6 +11,37 @@ import type { Player } from '@shared/party-types';
 // door's glow just signals "this room is active"; the actual portal
 // transition is driven by server state (see room/[code]/page.tsx), not a
 // click here.
+//
+// The fullscreen button is the one exception to "the TV never needs
+// interaction" — it's a one-time setup action before anyone's playing
+// (get the browser chrome out of the way), not something needed mid-game.
+function FullscreenButton() {
+  const [isFullscreen, setIsFullscreen] = useState(false);
+
+  useEffect(() => {
+    const onChange = () => setIsFullscreen(document.fullscreenElement !== null);
+    document.addEventListener('fullscreenchange', onChange);
+    return () => document.removeEventListener('fullscreenchange', onChange);
+  }, []);
+
+  const toggle = () => {
+    if (document.fullscreenElement) {
+      document.exitFullscreen().catch(() => {});
+    } else {
+      document.documentElement.requestFullscreen().catch(() => {});
+    }
+  };
+
+  return (
+    <button
+      onClick={toggle}
+      className="absolute top-[clamp(0.5rem,2vh,1rem)] right-[clamp(0.5rem,2vw,1rem)] z-20 rounded-lg border border-[var(--home-border)] bg-[var(--home-surface)] px-3 py-1.5 text-xs text-[var(--home-text-muted)] transition hover:text-[var(--home-text)]"
+    >
+      {isFullscreen ? '⤡ Exit fullscreen' : '⛶ Fullscreen'}
+    </button>
+  );
+}
+
 export function HomeTv({
   code,
   joinUrl,
@@ -21,7 +54,8 @@ export function HomeTv({
   shipDoorRef: RefObject<HTMLDivElement | null>;
 }) {
   return (
-    <div className="flex h-full w-full flex-col items-center justify-between gap-[clamp(0.5rem,2vh,1.25rem)] bg-[var(--home-bg)] p-[clamp(0.75rem,2vw,2rem)] text-[var(--home-text)]">
+    <div className="relative flex h-full w-full flex-col items-center justify-between gap-[clamp(0.5rem,2vh,1.25rem)] bg-[var(--home-bg)] p-[clamp(0.75rem,2vw,2rem)] text-[var(--home-text)]">
+      <FullscreenButton />
       {/* subtle wood-grain texture */}
       <div
         className="pointer-events-none fixed inset-0 opacity-50"
