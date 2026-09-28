@@ -15,6 +15,54 @@
   animation: fadeIn 0.7s ease-in-out;
 }
 
+/* Home (the cabin) — candle flicker, portal glow/sparks, garden fireflies */
+@keyframes flameFlicker {
+  0%, 100% { transform: scaleY(1) scaleX(1); opacity: 0.92; }
+  50% { transform: scaleY(1.1) scaleX(0.92); opacity: 1; }
+}
+.animate-flame-flicker {
+  animation: flameFlicker 2.3s ease-in-out infinite;
+}
+
+@keyframes portalPulse {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 1; }
+}
+.animate-portal-pulse {
+  animation: portalPulse 3.4s ease-in-out infinite;
+}
+
+@keyframes sparkFloat {
+  0%, 100% { opacity: 0; transform: translateY(4px); }
+  50% { opacity: 1; transform: translateY(-8px); }
+}
+.animate-spark-float {
+  animation: sparkFloat 3.2s ease-in-out infinite;
+}
+
+@keyframes twinkle {
+  0%, 100% { opacity: 0.15; transform: translateY(0); }
+  50% { opacity: 1; transform: translateY(-3px); }
+}
+.animate-twinkle {
+  animation: twinkle 2.6s ease-in-out infinite;
+}
+
+/* Home's own palette — cozy cabin, distinct from any room's theme */
+:root {
+  --home-bg: #211d18;
+  --home-surface: #2e2820;
+  --home-border: #4f4636;
+  --home-text: #ede6d6;
+  --home-text-muted: #a99d84;
+  --home-magic: #b9a6f5;
+  --home-magic-glow: rgba(185, 166, 245, 0.5);
+  --home-ember: #d97a3f;
+  --home-garden: #5c8a5f;
+  --home-garden-deep: #2f4a34;
+  --home-night-sky: #2a2452;
+}
+
 :root {
   --background: #ffffff;
   --foreground: #171717;

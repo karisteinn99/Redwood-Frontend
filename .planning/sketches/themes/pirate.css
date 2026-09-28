@@ -1,0 +1,40 @@
+@import url('https://fonts.googleapis.com/css2?family=Pirata+One&family=Special+Elite&family=Inter:wght@400;500;600&display=swap');
+
+/* Pirates of the Caribbean / Davy Jones' ship — deep ocean night, barnacled
+   wood, weathered brass, and an eerie bioluminescent teal glow instead of
+   warm firelight or casino gold. */
+:root,
+[data-theme='pirate'] {
+  --color-bg: #0a1210;
+  --color-surface: #142420;
+  --color-surface-raised: #1c332c;
+  --color-border: #3d5c4e;
+  --color-text: #d9ecd9;
+  --color-text-muted: #7fa89a;
+  --color-primary: #4de8c2;
+  --color-primary-hover: #6ff2d3;
+  --color-accent: #b8925a;
+  --color-danger: #8c2a1f;
+  --color-danger-bright: #b8452f;
+  --color-success: #4de8c2;
+
+  --font-display: 'Pirata One', 'Special Elite', Georgia, serif;
+  --font-sans: 'Inter', system-ui, sans-serif;
+
+  --text-xs: 0.75rem;
+  --text-sm: 0.9rem;
+  --text-base: 1rem;
+  --text-lg: 1.25rem;
+  --text-xl: 1.6rem;
+  --text-2xl: 2.1rem;
+  --text-3xl: 2.9rem;
+  --text-4xl: 4rem;
+
+  --space-1: 4px; --space-2: 8px; --space-3: 12px; --space-4: 16px;
+  --space-6: 24px; --space-8: 32px; --space-12: 48px;
+
+  --radius-sm: 3px; --radius-md: 8px; --radius-lg: 14px; --radius-full: 9999px;
+
+  --glow: 0 0 30px rgba(77, 232, 194, 0.45);
+  --shadow-md: 0 10px 26px rgba(0, 0, 0, 0.65);
+}

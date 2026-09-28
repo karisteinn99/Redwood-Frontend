@@ -1,0 +1,338 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Sketch 004 — Home &amp; the Door Portal</title>
+<link rel="stylesheet" href="../../themes/home.css" />
+<link rel="stylesheet" href="../../themes/pirate-v2.css" />
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: #000; font-family: system-ui, sans-serif; }
+  body { padding-top: 46px; }
+
+  #variant-nav {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 9998;
+    background: #0a0a0a; border-bottom: 1px solid #222;
+    padding: 8px 16px; display: flex; gap: 8px; align-items: center;
+    font-family: system-ui, sans-serif;
+  }
+  #variant-nav .label { color: #666; font-size: 12px; margin-right: 4px; }
+  .variant-tab {
+    background: #1a1a1a; color: #ccc; border: 1px solid #333; border-radius: 6px;
+    padding: 6px 14px; font-size: 13px; cursor: pointer; transition: all 0.15s ease;
+  }
+  .variant-tab:hover { background: #262626; color: #fff; }
+  .variant-tab.active { background: #fff; color: #111; border-color: #fff; font-weight: 600; }
+  .variant { display: none; }
+  .variant.active { display: block; }
+
+  .director {
+    display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+    padding: 10px 20px; background: #0a0a0a; border-bottom: 1px dashed #333;
+    font-family: system-ui, sans-serif; font-size: 13px; color: #888;
+  }
+  .director b { color: #ddd; font-weight: 600; }
+  .director button {
+    background: #1e1e1e; color: #eee; border: 1px solid #333; border-radius: 5px;
+    padding: 5px 12px; font-size: 12px; cursor: pointer; transition: all 0.15s ease;
+  }
+  .director button:hover { background: #2c2c2c; }
+  .director .spacer { flex: 1; }
+
+  .tv-wrap { padding: 40px 24px 80px; display: flex; justify-content: center; }
+  .tv {
+    width: 100%; max-width: 1000px; aspect-ratio: 16/9;
+    border-radius: 14px; box-shadow: 0 20px 60px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.04);
+    position: relative; overflow: hidden;
+  }
+
+  .layer { position: absolute; inset: 0; }
+  .foyer-layer { background: var(--color-bg); color: var(--color-text); font-family: var(--font-sans); }
+  .ship-layer {
+    background: var(--color-bg); color: var(--color-text); font-family: var(--font-sans);
+    clip-path: circle(0px at 50% 50%);
+    transition: clip-path 1.15s cubic-bezier(0.22, 0.7, 0.2, 1);
+  }
+  .ship-layer.open { clip-path: circle(1500px at var(--ox, 50%) var(--oy, 50%)); }
+
+  /* ---- foyer scene ---- */
+  .foyer-inner { position: relative; width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: space-between; padding: 26px 32px; }
+  .foyer-bg-glow { position: absolute; inset: 0; background: radial-gradient(ellipse at 50% 0%, rgba(240,168,60,0.10), transparent 60%); pointer-events: none; }
+
+  .welcome { text-align: center; }
+  .welcome h1 { font-family: var(--font-display); font-weight: 700; font-size: var(--text-2xl); margin: 0 0 4px; letter-spacing: 0.02em; }
+  .welcome .sub { color: var(--color-text-muted); font-size: var(--text-sm); }
+
+  .qr-card {
+    display: flex; align-items: center; gap: 16px; background: var(--color-surface);
+    border: 1px solid var(--color-border); border-radius: var(--radius-lg); padding: 14px 20px;
+    box-shadow: var(--shadow-md);
+  }
+  .fake-qr { width: 64px; height: 64px; display: grid; grid-template-columns: repeat(6,1fr); grid-template-rows: repeat(6,1fr); gap: 2px; background: #fff; padding: 6px; border-radius: 6px; }
+  .fake-qr span { background: #16100b; }
+  .fake-qr span.off { background: transparent; }
+  .code { font-family: var(--font-display); font-weight: 700; font-size: var(--text-xl); letter-spacing: 0.15em; }
+  .code-label { color: var(--color-text-muted); font-size: var(--text-xs); text-transform: uppercase; letter-spacing: 0.1em; }
+
+  .doors-row { display: flex; gap: 46px; align-items: flex-end; }
+  .door {
+    width: 96px; height: 150px; border-radius: 48px 48px 6px 6px; position: relative;
+    background: linear-gradient(160deg, var(--color-surface-raised), var(--color-surface));
+    border: 3px solid var(--color-border); cursor: pointer; transition: transform 0.2s ease;
+    display: flex; align-items: flex-end; justify-content: center; padding-bottom: 10px;
+  }
+  .door:hover { transform: translateY(-4px); }
+  .door .knob { position: absolute; right: 10px; top: 50%; width: 8px; height: 8px; border-radius: 50%; background: var(--color-accent); }
+  .door .door-label { font-size: var(--text-xs); color: var(--color-text-muted); text-align: center; }
+  .door.ship-door { box-shadow: 0 0 0 0 rgba(77,232,194,0); }
+  .door.ship-door::before {
+    content: ''; position: absolute; left: 6px; right: 6px; bottom: -2px; height: 10px;
+    background: radial-gradient(ellipse at center, rgba(77,232,194,0.9), transparent 70%);
+    filter: blur(4px); animation: doorGlow 3s ease-in-out infinite;
+  }
+  @keyframes doorGlow { 0%, 100% { opacity: 0.55; } 50% { opacity: 1; } }
+  .door.locked { opacity: 0.55; cursor: not-allowed; }
+  .door.locked::after { content: '🔒'; position: absolute; top: -14px; font-size: 16px; }
+  .door.locked:hover { transform: none; }
+
+  .guests { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; }
+  .guest { background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-full); padding: 6px 16px; font-size: var(--text-sm); }
+  .guest.host { color: var(--color-accent); border-color: var(--color-accent); }
+
+  /* ---- variant B: grand foyer specifics ---- */
+  .hearth { width: 130px; height: 90px; border-radius: 50% 50% 0 0; background: radial-gradient(ellipse at 50% 100%, rgba(226,87,43,0.55), transparent 70%); position: absolute; bottom: 0; left: 50%; transform: translateX(-50%); filter: blur(2px); animation: hearthFlicker 4s ease-in-out infinite; }
+  @keyframes hearthFlicker { 0%, 100% { opacity: 0.7; } 50% { opacity: 1; } }
+
+  /* ---- ship layer content ---- */
+  .ship-inner { position: relative; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; flex-direction: column; text-align: center; }
+  .ship-inner h2 { font-family: var(--font-display); font-weight: 700; font-size: var(--text-3xl); color: var(--color-primary); text-shadow: var(--lantern-glow); margin: 0; }
+  .ship-inner p { color: var(--color-text-muted); margin-top: 10px; }
+  .ship-scenery { position: absolute; inset: 0; z-index: 0; pointer-events: none; }
+  .ship-scenery svg { width: 100%; height: 100%; }
+  .lantern-group { transform-origin: 500px 40px; animation: lanternSwing 6s ease-in-out infinite; }
+  @keyframes lanternSwing { 0%, 100% { transform: rotate(-2.5deg); } 50% { transform: rotate(2.5deg); } }
+
+  .tv-caption { text-align: center; color: #777; font-size: 12px; margin-top: 10px; font-family: system-ui, sans-serif; max-width: 720px; margin-left: auto; margin-right: auto; }
+</style>
+</head>
+<body>
+
+<div id="variant-nav">
+  <span class="label">SKETCH 004 · HOME &amp; THE DOOR PORTAL</span>
+  <button class="variant-tab active" onclick="showVariant('hallway')">A: Warm Hallway</button>
+  <button class="variant-tab" onclick="showVariant('grand')">B: Grand Foyer</button>
+</div>
+
+<!-- ============ A: WARM HALLWAY ============ -->
+<div id="variant-hallway" class="variant active">
+  <div class="director">
+    <b>Director:</b>
+    <span>Click the glowing door to open the portal to the Ship.</span>
+    <span class="spacer"></span>
+    <button onclick="closePortal('hallway')">↺ Reset to Home</button>
+  </div>
+  <div class="tv-wrap">
+    <div class="tv" id="tv-hallway">
+      <div class="layer foyer-layer" data-theme="home">
+        <div class="foyer-bg-glow"></div>
+        <div class="foyer-inner">
+          <div class="welcome">
+            <h1>Welcome Home</h1>
+            <p class="sub">Scan to come inside</p>
+          </div>
+          <div class="qr-card">
+            <div class="fake-qr" id="fakeqr-hallway"></div>
+            <div>
+              <p class="code-label">Room code</p>
+              <p class="code">JOLLY-7</p>
+            </div>
+          </div>
+          <div class="doors-row">
+            <div class="door" onclick="return false;">
+              <span class="knob"></span>
+              <span class="door-label">The Lounge</span>
+            </div>
+            <div class="door ship-door" id="door-hallway" onclick="openPortal('hallway', this)">
+              <span class="knob"></span>
+              <span class="door-label">The Ship</span>
+            </div>
+            <div class="door locked" onclick="return false;">
+              <span class="knob"></span>
+              <span class="door-label">???</span>
+            </div>
+          </div>
+          <div class="guests">
+            <span class="guest host">Kári · host</span>
+            <span class="guest">Rós</span>
+            <span class="guest">Sölvi</span>
+          </div>
+        </div>
+      </div>
+      <div class="layer ship-layer" id="ship-hallway" data-theme="pirate-v2">
+        <div class="ship-scenery">
+          <svg viewBox="0 0 1000 562" preserveAspectRatio="xMidYMid slice">
+            <defs>
+              <linearGradient id="wood-h" x1="0" y1="0" x2="1" y2="0">
+                <stop offset="0%" stop-color="#1a120c"/><stop offset="100%" stop-color="#3a2a1a"/>
+              </linearGradient>
+              <radialGradient id="lantern-glow-h" cx="50%" cy="50%" r="50%">
+                <stop offset="0%" stop-color="#ffd27a" stop-opacity="0.95"/>
+                <stop offset="45%" stop-color="#e8a33d" stop-opacity="0.5"/>
+                <stop offset="100%" stop-color="#e8a33d" stop-opacity="0"/>
+              </radialGradient>
+              <radialGradient id="vignette-h" cx="50%" cy="46%" r="72%">
+                <stop offset="0%" stop-color="#000" stop-opacity="0"/><stop offset="100%" stop-color="#000" stop-opacity="0.7"/>
+              </radialGradient>
+            </defs>
+            <path d="M -40,0 C 90,140 90,420 -40,562 L 90,562 C 190,420 190,140 90,0 Z" fill="url(#wood-h)" opacity="0.9"/>
+            <path d="M 1040,0 C 910,140 910,420 1040,562 L 910,562 C 810,420 810,140 910,0 Z" fill="url(#wood-h)" opacity="0.9"/>
+            <g class="lantern-group">
+              <line x1="500" y1="40" x2="500" y2="95" stroke="#4a3a24" stroke-width="3"/>
+              <circle cx="500" cy="118" r="46" fill="url(#lantern-glow-h)"/>
+              <rect x="486" y="98" width="28" height="34" rx="4" fill="#2a2015" stroke="#8a6a3c" stroke-width="2"/>
+              <polygon points="480,98 520,98 500,84" fill="#2a2015" stroke="#8a6a3c" stroke-width="2"/>
+            </g>
+            <rect width="1000" height="562" fill="url(#vignette-h)"/>
+          </svg>
+        </div>
+        <div class="ship-inner">
+          <h2>The Ship</h2>
+          <p>Liar's Dice is played here.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <p class="tv-caption">Home's own identity (warm foyer palette) stays fixed. The Ship door glows so it reads as "alive" before you even touch it; the other doors hint at future rooms — one locked outright.</p>
+</div>
+
+<!-- ============ B: GRAND FOYER ============ -->
+<div id="variant-grand" class="variant">
+  <div class="director">
+    <b>Director:</b>
+    <span>Click the glowing door to open the portal to the Ship.</span>
+    <span class="spacer"></span>
+    <button onclick="closePortal('grand')">↺ Reset to Home</button>
+  </div>
+  <div class="tv-wrap">
+    <div class="tv" id="tv-grand">
+      <div class="layer foyer-layer" data-theme="home">
+        <div class="hearth"></div>
+        <div class="foyer-bg-glow"></div>
+        <div class="foyer-inner">
+          <div class="welcome">
+            <h1>Go Home</h1>
+            <p class="sub">Scan to come inside, or visit gohomegames.com/join</p>
+          </div>
+          <div class="doors-row">
+            <div class="door" onclick="return false;">
+              <span class="knob"></span>
+              <span class="door-label">The Lounge</span>
+            </div>
+            <div class="door ship-door" id="door-grand" onclick="openPortal('grand', this)">
+              <span class="knob"></span>
+              <span class="door-label">The Ship</span>
+            </div>
+            <div class="door locked" onclick="return false;">
+              <span class="knob"></span>
+              <span class="door-label">???</span>
+            </div>
+          </div>
+          <div class="qr-card">
+            <div class="fake-qr" id="fakeqr-grand"></div>
+            <div>
+              <p class="code-label">Room code</p>
+              <p class="code">JOLLY-7</p>
+            </div>
+          </div>
+          <div class="guests">
+            <span class="guest host">Kári · host</span>
+            <span class="guest">Rós</span>
+            <span class="guest">Sölvi</span>
+          </div>
+        </div>
+      </div>
+      <div class="layer ship-layer" id="ship-grand" data-theme="pirate-v2">
+        <div class="ship-scenery">
+          <svg viewBox="0 0 1000 562" preserveAspectRatio="xMidYMid slice">
+            <defs>
+              <linearGradient id="wood-g" x1="0" y1="0" x2="1" y2="0">
+                <stop offset="0%" stop-color="#1a120c"/><stop offset="100%" stop-color="#3a2a1a"/>
+              </linearGradient>
+              <radialGradient id="lantern-glow-g" cx="50%" cy="50%" r="50%">
+                <stop offset="0%" stop-color="#ffd27a" stop-opacity="0.95"/>
+                <stop offset="45%" stop-color="#e8a33d" stop-opacity="0.5"/>
+                <stop offset="100%" stop-color="#e8a33d" stop-opacity="0"/>
+              </radialGradient>
+              <radialGradient id="vignette-g" cx="50%" cy="46%" r="72%">
+                <stop offset="0%" stop-color="#000" stop-opacity="0"/><stop offset="100%" stop-color="#000" stop-opacity="0.7"/>
+              </radialGradient>
+            </defs>
+            <path d="M -40,0 C 90,140 90,420 -40,562 L 90,562 C 190,420 190,140 90,0 Z" fill="url(#wood-g)" opacity="0.9"/>
+            <path d="M 1040,0 C 910,140 910,420 1040,562 L 910,562 C 810,420 810,140 910,0 Z" fill="url(#wood-g)" opacity="0.9"/>
+            <g class="lantern-group">
+              <line x1="500" y1="40" x2="500" y2="95" stroke="#4a3a24" stroke-width="3"/>
+              <circle cx="500" cy="118" r="46" fill="url(#lantern-glow-g)"/>
+              <rect x="486" y="98" width="28" height="34" rx="4" fill="#2a2015" stroke="#8a6a3c" stroke-width="2"/>
+              <polygon points="480,98 520,98 500,84" fill="#2a2015" stroke="#8a6a3c" stroke-width="2"/>
+            </g>
+            <rect width="1000" height="562" fill="url(#vignette-g)"/>
+          </svg>
+        </div>
+        <div class="ship-inner">
+          <h2>The Ship</h2>
+          <p>Liar's Dice is played here.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <p class="tv-caption">A more "manor house" composition — hearth glow at the base, doors flanking a central welcome, QR moved below the doors so the doors themselves read as the focal point.</p>
+</div>
+
+<div id="sketch-tools" style="position:fixed;bottom:12px;right:12px;z-index:9999;font-family:system-ui;font-size:12px;background:rgba(0,0,0,0.75);color:white;padding:8px 12px;border-radius:8px;opacity:0.45;transition:opacity 0.2s;" onmouseenter="this.style.opacity='1'" onmouseleave="this.style.opacity='0.45'">
+  Sketch 004 · home-portal &nbsp;·&nbsp; click the glowing door
+</div>
+
+<script>
+  function fillFakeQr(id) {
+    const grid = document.getElementById(id);
+    grid.innerHTML = '';
+    // deterministic-looking noise, not a real QR
+    const pattern = [1,1,1,0,1,1, 1,0,0,1,0,1, 1,0,1,1,0,1, 0,1,0,0,1,0, 1,0,1,1,0,1, 1,1,0,1,1,1];
+    pattern.forEach((v) => {
+      const s = document.createElement('span');
+      if (!v) s.className = 'off';
+      grid.appendChild(s);
+    });
+  }
+  ['fakeqr-hallway', 'fakeqr-grand'].forEach(fillFakeQr);
+
+  function openPortal(prefix, doorEl) {
+    const tv = document.getElementById('tv-' + prefix);
+    const ship = document.getElementById('ship-' + prefix);
+    const doorRect = doorEl.getBoundingClientRect();
+    const tvRect = tv.getBoundingClientRect();
+    const ox = doorRect.left + doorRect.width / 2 - tvRect.left;
+    const oy = doorRect.top + doorRect.height / 2 - tvRect.top;
+    ship.style.setProperty('--ox', ox + 'px');
+    ship.style.setProperty('--oy', oy + 'px');
+    // force layout so the transition plays from 0
+    ship.classList.remove('open');
+    void ship.offsetWidth;
+    ship.classList.add('open');
+  }
+
+  function closePortal(prefix) {
+    document.getElementById('ship-' + prefix).classList.remove('open');
+  }
+
+  function showVariant(id) {
+    document.querySelectorAll('.variant').forEach((v) => v.classList.remove('active'));
+    document.querySelectorAll('.variant-tab').forEach((t) => t.classList.remove('active'));
+    document.getElementById('variant-' + id).classList.add('active');
+    event.target.classList.add('active');
+  }
+</script>
+
+</body>
+</html>

@@ -1,0 +1,387 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Sketch 005 — Home, Detailed</title>
+<link rel="stylesheet" href="../../themes/home.css" />
+<link rel="stylesheet" href="../../themes/pirate-v2.css" />
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: #000; font-family: system-ui, sans-serif; }
+  body { padding-top: 46px; }
+
+  #variant-nav { position: fixed; top: 0; left: 0; right: 0; z-index: 9998; background: #0a0a0a; border-bottom: 1px solid #222; padding: 8px 16px; display: flex; gap: 8px; align-items: center; font-family: system-ui, sans-serif; }
+  #variant-nav .label { color: #666; font-size: 12px; margin-right: 4px; }
+  .variant-tab { background: #1a1a1a; color: #ccc; border: 1px solid #333; border-radius: 6px; padding: 6px 14px; font-size: 13px; cursor: pointer; transition: all 0.15s ease; }
+  .variant-tab:hover { background: #262626; color: #fff; }
+  .variant-tab.active { background: #fff; color: #111; border-color: #fff; font-weight: 600; }
+  .variant { display: none; }
+  .variant.active { display: block; }
+
+  .director { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 10px 20px; background: #0a0a0a; border-bottom: 1px dashed #333; font-family: system-ui, sans-serif; font-size: 13px; color: #888; }
+  .director b { color: #ddd; font-weight: 600; }
+  .director button { background: #1e1e1e; color: #eee; border: 1px solid #333; border-radius: 5px; padding: 5px 12px; font-size: 12px; cursor: pointer; transition: all 0.15s ease; }
+  .director button:hover { background: #2c2c2c; }
+  .director .spacer { flex: 1; }
+
+  .tv-wrap { padding: 40px 24px 80px; display: flex; justify-content: center; }
+  .tv { width: 100%; max-width: 1050px; aspect-ratio: 16/9; border-radius: 14px; box-shadow: 0 20px 60px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.04); position: relative; overflow: hidden; }
+  .layer { position: absolute; inset: 0; }
+  .foyer-layer { background: var(--color-bg); color: var(--color-text); font-family: var(--font-sans); }
+  .ship-layer { background: var(--color-bg); color: var(--color-text); font-family: var(--font-sans); clip-path: circle(0px at 50% 50%); transition: clip-path 1.15s cubic-bezier(0.22,0.7,0.2,1); }
+  .ship-layer.open { clip-path: circle(1600px at var(--ox, 50%) var(--oy, 50%)); }
+
+  .foyer-bg-glow { position: absolute; inset: 0; background: radial-gradient(ellipse at 50% 0%, rgba(240,168,60,0.12), transparent 55%), radial-gradient(ellipse at 10% 90%, rgba(95,168,143,0.08), transparent 55%); pointer-events: none; }
+  .foyer-inner { position: relative; width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: space-between; padding: 18px 30px 14px; }
+
+  .welcome-row { display: flex; align-items: center; gap: 18px; }
+  .sconce { width: 12px; height: 20px; background: linear-gradient(180deg,#8a6a2c,#5c4520); border-radius: 3px 3px 6px 6px; position: relative; }
+  .sconce::after { content: ''; position: absolute; top: -11px; left: 50%; transform: translateX(-50%); width: 20px; height: 20px; border-radius: 50%; background: radial-gradient(circle, #ffd27a, transparent 70%); filter: blur(2px); animation: flicker 2.6s ease-in-out infinite; }
+  @keyframes flicker { 0%, 100% { opacity: 0.7; transform: translateX(-50%) scale(1); } 50% { opacity: 1; transform: translateX(-50%) scale(1.08); } }
+  .welcome h1 { font-family: var(--font-display); font-weight: 700; font-size: var(--text-xl); margin: 0; letter-spacing: 0.02em; text-align: center; }
+  .welcome .sub { color: var(--color-text-muted); font-size: var(--text-xs); text-align: center; margin: 2px 0 0; }
+
+  /* join card: code left / vertical divider+or / qr right */
+  .join-card { display: flex; align-items: stretch; gap: 22px; background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-lg); padding: 12px 22px; box-shadow: var(--shadow-md); }
+  .join-col { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; }
+  .join-label { font-size: var(--text-xs); text-transform: uppercase; letter-spacing: 0.12em; color: var(--color-text-muted); }
+  .join-url-text { font-family: var(--font-sans); font-size: var(--text-sm); color: var(--color-text-muted); text-align: center; margin: 0; }
+  .join-code { display: block; font-family: var(--font-display); font-weight: 700; font-size: var(--text-lg); letter-spacing: 0.14em; color: var(--color-accent); margin-top: 2px; }
+  .join-divider { position: relative; width: 1px; background: var(--color-border); }
+  .join-divider span { position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); background: var(--color-surface); border: 1px solid var(--color-border); color: var(--color-text-muted); font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; padding: 3px 7px; border-radius: var(--radius-full); }
+  .fake-qr { display: grid; grid-template-columns: repeat(6,1fr); grid-template-rows: repeat(6,1fr); gap: 2px; background: #fff; padding: 6px; border-radius: 6px; }
+  .fake-qr span { background: #16100b; }
+  .fake-qr span.off { background: transparent; }
+  .fake-qr.big { width: 78px; height: 78px; }
+
+  /* bunting */
+  .bunting-wrap { width: 84%; position: relative; height: 20px; margin-bottom: 2px; }
+  .bunting-string { position: absolute; top: 0; left: 0; right: 0; height: 1px; background: var(--color-border); }
+  .bunting { position: absolute; top: 0; left: 0; right: 0; display: flex; justify-content: space-between; padding: 0 4px; }
+  .flag { width: 0; height: 0; border-left: 9px solid transparent; border-right: 9px solid transparent; border-top: 14px solid var(--flag-color); opacity: 0.9; }
+  .flag:nth-child(6n+1) { --flag-color: var(--color-primary); }
+  .flag:nth-child(6n+2) { --flag-color: var(--color-accent); }
+  .flag:nth-child(6n+3) { --flag-color: var(--color-success); }
+  .flag:nth-child(6n+4) { --flag-color: var(--color-accent); }
+  .flag:nth-child(6n+5) { --flag-color: var(--color-primary); }
+  .flag:nth-child(6n+6) { --flag-color: var(--color-success); }
+
+  /* doors, detailed */
+  .doors-row { display: flex; gap: 30px; align-items: flex-end; }
+  .door-frame { display: flex; flex-direction: column; align-items: center; }
+  .pediment { width: 96px; height: 14px; border-radius: 50% 50% 0 0 / 100% 100% 0 0; background: linear-gradient(180deg, var(--color-surface-raised), var(--color-border)); }
+  .door { position: relative; width: 88px; height: 128px; border-radius: 4px; background: linear-gradient(160deg, var(--color-surface-raised), var(--color-surface)); border: 3px solid var(--color-border); cursor: pointer; transition: transform 0.2s ease; overflow: hidden; }
+  .door:hover { transform: translateY(-3px); }
+  .door-window { position: absolute; top: 14px; left: 50%; transform: translateX(-50%); width: 30px; height: 30px; border-radius: 50%; border: 3px solid var(--color-border); }
+  .door-panel { position: absolute; left: 12%; right: 12%; height: 30%; border-radius: 5px; box-shadow: inset 0 0 0 2px rgba(0,0,0,0.3), inset 0 2px 5px rgba(0,0,0,0.45), inset 0 -1px 2px rgba(255,255,255,0.06); }
+  .door-panel.top { top: 52%; }
+  .door-panel.bottom { top: 80%; }
+  .door-kickplate { position: absolute; left: 8%; right: 8%; bottom: 4%; height: 8%; background: linear-gradient(180deg, #d4a94f, #8a6a2c); border-radius: 2px; box-shadow: 0 1px 2px rgba(0,0,0,0.5); }
+  .door-plaque { margin-top: 8px; background: linear-gradient(180deg, #d9ae54, #a67c33); color: #2a1c0e; font-family: var(--font-display); font-weight: 700; font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; padding: 3px 10px; border-radius: 3px; box-shadow: inset 0 1px 0 rgba(255,255,255,0.45), 0 2px 4px rgba(0,0,0,0.4); }
+
+  .door-window.lounge-window { background: radial-gradient(circle, #ffd27a, #a06a1f 75%); box-shadow: 0 0 14px rgba(255,210,122,0.55); }
+  .door-window.ship-window { background: radial-gradient(circle, #8ff2d8, #123b30 75%); box-shadow: 0 0 14px rgba(77,232,194,0.55); animation: flicker 3.4s ease-in-out infinite; }
+  .door-window.locked-window { background: repeating-linear-gradient(45deg, #2b2015, #2b2015 4px, #1a130c 4px, #1a130c 8px); }
+  .door.locked { opacity: 0.7; cursor: not-allowed; }
+  .door.locked:hover { transform: none; }
+  .plank-bar { position: absolute; left: -6px; right: -6px; height: 8px; background: linear-gradient(180deg,#6b4a26,#4a3218); border-radius: 2px; box-shadow: 0 1px 3px rgba(0,0,0,0.6); }
+  .plank-bar.p1 { top: 30%; transform: rotate(8deg); }
+  .plank-bar.p2 { top: 58%; transform: rotate(-7deg); }
+
+  /* rug */
+  .rug { width: 56%; height: 22px; border-radius: 50%; background: repeating-linear-gradient(90deg, var(--color-primary) 0 12px, var(--color-accent) 12px 24px, var(--color-success) 24px 36px, var(--color-surface-raised) 36px 48px); opacity: 0.5; }
+
+  .guests { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
+  .guest { background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-full); padding: 4px 14px; font-size: var(--text-sm); }
+  .guest.host { color: var(--color-accent); border-color: var(--color-accent); }
+
+  /* variant B extras: portraits + wreaths */
+  .portrait { width: 52px; height: 64px; border: 3px solid #a67c33; border-radius: 3px; background: linear-gradient(160deg, #3a2a4a, #7a4a3a 60%, #c98a4a); box-shadow: 0 3px 8px rgba(0,0,0,0.5); }
+  .portrait.b { background: linear-gradient(200deg, #1e3a30, #4a6b52 55%, #cdbb6a); }
+  .side-deco { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+  .wreath { width: 30px; height: 30px; border-radius: 50%; border: 6px solid var(--color-success); opacity: 0.85; box-shadow: 0 0 0 2px var(--color-bg) inset; }
+
+  .ship-inner { position: relative; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; flex-direction: column; text-align: center; }
+  .ship-inner h2 { font-family: var(--font-display); font-weight: 700; font-size: var(--text-3xl); color: var(--color-primary); text-shadow: var(--lantern-glow); margin: 0; }
+  .ship-inner p { color: var(--color-text-muted); margin-top: 10px; }
+  .ship-scenery { position: absolute; inset: 0; z-index: 0; pointer-events: none; }
+  .ship-scenery svg { width: 100%; height: 100%; }
+  .lantern-group { transform-origin: 500px 40px; animation: lanternSwing 6s ease-in-out infinite; }
+  @keyframes lanternSwing { 0%, 100% { transform: rotate(-2.5deg); } 50% { transform: rotate(2.5deg); } }
+
+  .tv-caption { text-align: center; color: #777; font-size: 12px; margin-top: 10px; font-family: system-ui, sans-serif; max-width: 760px; margin-left: auto; margin-right: auto; }
+</style>
+</head>
+<body>
+
+<div id="variant-nav">
+  <span class="label">SKETCH 005 · HOME, DETAILED</span>
+  <button class="variant-tab active" onclick="showVariant('cozy')">A: Cozy Hallway</button>
+  <button class="variant-tab" onclick="showVariant('story')">B: Storyteller's Hallway</button>
+</div>
+
+<!-- ============ A: COZY HALLWAY ============ -->
+<div id="variant-cozy" class="variant active">
+  <div class="director">
+    <b>Director:</b>
+    <span>Click the glowing Ship door to open the portal.</span>
+    <span class="spacer"></span>
+    <button onclick="closePortal('cozy')">↺ Reset to Home</button>
+  </div>
+  <div class="tv-wrap">
+    <div class="tv" id="tv-cozy">
+      <div class="layer foyer-layer" data-theme="home">
+        <div class="foyer-bg-glow"></div>
+        <div class="foyer-inner">
+          <div class="welcome-row">
+            <div class="sconce"></div>
+            <div class="welcome"><h1>Welcome Home</h1><p class="sub">Everyone's waiting for you</p></div>
+            <div class="sconce"></div>
+          </div>
+
+          <div class="join-card">
+            <div class="join-col">
+              <p class="join-label">Join at</p>
+              <p class="join-url-text">gohomegames.com/join/<span class="join-code">JOLLY-7</span></p>
+            </div>
+            <div class="join-divider"><span>or</span></div>
+            <div class="join-col">
+              <p class="join-label">Scan</p>
+              <div class="fake-qr big" id="fakeqr-cozy"></div>
+            </div>
+          </div>
+
+          <div>
+            <div class="bunting-wrap">
+              <div class="bunting-string"></div>
+              <div class="bunting">
+                <span class="flag"></span><span class="flag"></span><span class="flag"></span>
+                <span class="flag"></span><span class="flag"></span><span class="flag"></span>
+                <span class="flag"></span>
+              </div>
+            </div>
+            <div class="doors-row">
+              <div class="door-frame">
+                <div class="pediment"></div>
+                <div class="door">
+                  <div class="door-window lounge-window"></div>
+                  <div class="door-panel top"></div>
+                  <div class="door-panel bottom"></div>
+                  <div class="door-kickplate"></div>
+                </div>
+                <div class="door-plaque">The Lounge</div>
+              </div>
+              <div class="door-frame">
+                <div class="pediment"></div>
+                <div class="door" id="door-cozy" onclick="openPortal('cozy', this)">
+                  <div class="door-window ship-window"></div>
+                  <div class="door-panel top"></div>
+                  <div class="door-panel bottom"></div>
+                  <div class="door-kickplate"></div>
+                </div>
+                <div class="door-plaque">The Ship</div>
+              </div>
+              <div class="door-frame">
+                <div class="pediment"></div>
+                <div class="door locked">
+                  <div class="door-window locked-window"></div>
+                  <div class="plank-bar p1"></div>
+                  <div class="plank-bar p2"></div>
+                </div>
+                <div class="door-plaque">???</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="rug"></div>
+          <div class="guests">
+            <span class="guest host">Kári · host</span>
+            <span class="guest">Rós</span>
+            <span class="guest">Sölvi</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="layer ship-layer" id="ship-cozy" data-theme="pirate-v2">
+        <div class="ship-scenery">
+          <svg viewBox="0 0 1000 562" preserveAspectRatio="xMidYMid slice">
+            <defs>
+              <linearGradient id="wood-c" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="#1a120c"/><stop offset="100%" stop-color="#3a2a1a"/></linearGradient>
+              <radialGradient id="lantern-glow-c" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="#ffd27a" stop-opacity="0.95"/><stop offset="45%" stop-color="#e8a33d" stop-opacity="0.5"/><stop offset="100%" stop-color="#e8a33d" stop-opacity="0"/></radialGradient>
+              <radialGradient id="vignette-c" cx="50%" cy="46%" r="72%"><stop offset="0%" stop-color="#000" stop-opacity="0"/><stop offset="100%" stop-color="#000" stop-opacity="0.7"/></radialGradient>
+            </defs>
+            <path d="M -40,0 C 90,140 90,420 -40,562 L 90,562 C 190,420 190,140 90,0 Z" fill="url(#wood-c)" opacity="0.9"/>
+            <path d="M 1040,0 C 910,140 910,420 1040,562 L 910,562 C 810,420 810,140 910,0 Z" fill="url(#wood-c)" opacity="0.9"/>
+            <g class="lantern-group">
+              <line x1="500" y1="40" x2="500" y2="95" stroke="#4a3a24" stroke-width="3"/>
+              <circle cx="500" cy="118" r="46" fill="url(#lantern-glow-c)"/>
+              <rect x="486" y="98" width="28" height="34" rx="4" fill="#2a2015" stroke="#8a6a3c" stroke-width="2"/>
+              <polygon points="480,98 520,98 500,84" fill="#2a2015" stroke="#8a6a3c" stroke-width="2"/>
+            </g>
+            <rect width="1000" height="562" fill="url(#vignette-c)"/>
+          </svg>
+        </div>
+        <div class="ship-inner"><h2>The Ship</h2><p>Liar's Dice is played here.</p></div>
+      </div>
+    </div>
+  </div>
+  <p class="tv-caption">Bunting strung across the doors (coral/gold/sage), warm brass sconces flanking the welcome, doors with a window + brass plaque each (the Ship's window glows teal, the locked door is boarded over), a woven rug underfoot. The join card is now code-left / QR-right with a vertical "or" divider.</p>
+</div>
+
+<!-- ============ B: STORYTELLER'S HALLWAY ============ -->
+<div id="variant-story" class="variant">
+  <div class="director">
+    <b>Director:</b>
+    <span>Click the glowing Ship door to open the portal.</span>
+    <span class="spacer"></span>
+    <button onclick="closePortal('story')">↺ Reset to Home</button>
+  </div>
+  <div class="tv-wrap">
+    <div class="tv" id="tv-story">
+      <div class="layer foyer-layer" data-theme="home">
+        <div class="foyer-bg-glow"></div>
+        <div class="foyer-inner">
+          <div class="welcome-row">
+            <div class="side-deco"><div class="portrait"></div></div>
+            <div class="welcome"><h1>Welcome Home</h1><p class="sub">Everyone's waiting for you</p></div>
+            <div class="side-deco"><div class="portrait b"></div></div>
+          </div>
+
+          <div class="join-card">
+            <div class="join-col">
+              <p class="join-label">Join at</p>
+              <p class="join-url-text">gohomegames.com/join/<span class="join-code">JOLLY-7</span></p>
+            </div>
+            <div class="join-divider"><span>or</span></div>
+            <div class="join-col">
+              <p class="join-label">Scan</p>
+              <div class="fake-qr big" id="fakeqr-story"></div>
+            </div>
+          </div>
+
+          <div>
+            <div class="bunting-wrap">
+              <div class="bunting-string"></div>
+              <div class="bunting">
+                <span class="flag"></span><span class="flag"></span><span class="flag"></span>
+                <span class="flag"></span><span class="flag"></span><span class="flag"></span>
+                <span class="flag"></span>
+              </div>
+            </div>
+            <div class="doors-row">
+              <div class="side-deco"><div class="wreath"></div></div>
+              <div class="door-frame">
+                <div class="pediment"></div>
+                <div class="door">
+                  <div class="door-window lounge-window"></div>
+                  <div class="door-panel top"></div>
+                  <div class="door-panel bottom"></div>
+                  <div class="door-kickplate"></div>
+                </div>
+                <div class="door-plaque">The Lounge</div>
+              </div>
+              <div class="door-frame">
+                <div class="pediment"></div>
+                <div class="door" id="door-story" onclick="openPortal('story', this)">
+                  <div class="door-window ship-window"></div>
+                  <div class="door-panel top"></div>
+                  <div class="door-panel bottom"></div>
+                  <div class="door-kickplate"></div>
+                </div>
+                <div class="door-plaque">The Ship</div>
+              </div>
+              <div class="door-frame">
+                <div class="pediment"></div>
+                <div class="door locked">
+                  <div class="door-window locked-window"></div>
+                  <div class="plank-bar p1"></div>
+                  <div class="plank-bar p2"></div>
+                </div>
+                <div class="door-plaque">???</div>
+              </div>
+              <div class="side-deco"><div class="wreath"></div></div>
+            </div>
+          </div>
+
+          <div class="rug"></div>
+          <div class="guests">
+            <span class="guest host">Kári · host</span>
+            <span class="guest">Rós</span>
+            <span class="guest">Sölvi</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="layer ship-layer" id="ship-story" data-theme="pirate-v2">
+        <div class="ship-scenery">
+          <svg viewBox="0 0 1000 562" preserveAspectRatio="xMidYMid slice">
+            <defs>
+              <linearGradient id="wood-s2" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="#1a120c"/><stop offset="100%" stop-color="#3a2a1a"/></linearGradient>
+              <radialGradient id="lantern-glow-s2" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="#ffd27a" stop-opacity="0.95"/><stop offset="45%" stop-color="#e8a33d" stop-opacity="0.5"/><stop offset="100%" stop-color="#e8a33d" stop-opacity="0"/></radialGradient>
+              <radialGradient id="vignette-s2" cx="50%" cy="46%" r="72%"><stop offset="0%" stop-color="#000" stop-opacity="0"/><stop offset="100%" stop-color="#000" stop-opacity="0.7"/></radialGradient>
+            </defs>
+            <path d="M -40,0 C 90,140 90,420 -40,562 L 90,562 C 190,420 190,140 90,0 Z" fill="url(#wood-s2)" opacity="0.9"/>
+            <path d="M 1040,0 C 910,140 910,420 1040,562 L 910,562 C 810,420 810,140 910,0 Z" fill="url(#wood-s2)" opacity="0.9"/>
+            <g class="lantern-group">
+              <line x1="500" y1="40" x2="500" y2="95" stroke="#4a3a24" stroke-width="3"/>
+              <circle cx="500" cy="118" r="46" fill="url(#lantern-glow-s2)"/>
+              <rect x="486" y="98" width="28" height="34" rx="4" fill="#2a2015" stroke="#8a6a3c" stroke-width="2"/>
+              <polygon points="480,98 520,98 500,84" fill="#2a2015" stroke="#8a6a3c" stroke-width="2"/>
+            </g>
+            <rect width="1000" height="562" fill="url(#vignette-s2)"/>
+          </svg>
+        </div>
+        <div class="ship-inner"><h2>The Ship</h2><p>Liar's Dice is played here.</p></div>
+      </div>
+    </div>
+  </div>
+  <p class="tv-caption">Everything in A, plus two framed "portraits" flanking the welcome (a placeholder for recurring characters later) and wreaths flanking the doors row — pushes further into "lived-in house" at the cost of a busier frame.</p>
+</div>
+
+<div id="sketch-tools" style="position:fixed;bottom:12px;right:12px;z-index:9999;font-family:system-ui;font-size:12px;background:rgba(0,0,0,0.75);color:white;padding:8px 12px;border-radius:8px;opacity:0.45;transition:opacity 0.2s;" onmouseenter="this.style.opacity='1'" onmouseleave="this.style.opacity='0.45'">
+  Sketch 005 · home-detailed &nbsp;·&nbsp; click the glowing door
+</div>
+
+<script>
+  function fillFakeQr(id) {
+    const grid = document.getElementById(id);
+    if (!grid) return;
+    grid.innerHTML = '';
+    const pattern = [1,1,1,0,1,1, 1,0,0,1,0,1, 1,0,1,1,0,1, 0,1,0,0,1,0, 1,0,1,1,0,1, 1,1,0,1,1,1];
+    pattern.forEach((v) => {
+      const s = document.createElement('span');
+      if (!v) s.className = 'off';
+      grid.appendChild(s);
+    });
+  }
+  ['fakeqr-cozy', 'fakeqr-story'].forEach(fillFakeQr);
+
+  function openPortal(prefix, doorEl) {
+    const tv = document.getElementById('tv-' + prefix);
+    const ship = document.getElementById('ship-' + prefix);
+    const doorRect = doorEl.getBoundingClientRect();
+    const tvRect = tv.getBoundingClientRect();
+    const ox = doorRect.left + doorRect.width / 2 - tvRect.left;
+    const oy = doorRect.top + doorRect.height / 2 - tvRect.top;
+    ship.style.setProperty('--ox', ox + 'px');
+    ship.style.setProperty('--oy', oy + 'px');
+    ship.classList.remove('open');
+    void ship.offsetWidth;
+    ship.classList.add('open');
+  }
+
+  function closePortal(prefix) {
+    document.getElementById('ship-' + prefix).classList.remove('open');
+  }
+
+  function showVariant(id) {
+    document.querySelectorAll('.variant').forEach((v) => v.classList.remove('active'));
+    document.querySelectorAll('.variant-tab').forEach((t) => t.classList.remove('active'));
+    document.getElementById('variant-' + id).classList.add('active');
+    event.target.classList.add('active');
+  }
+</script>
+
+</body>
+</html>

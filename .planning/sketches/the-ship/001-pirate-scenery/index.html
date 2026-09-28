@@ -1,0 +1,358 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Sketch 003 — The Ship: Scenery Depth</title>
+<link rel="stylesheet" href="../../themes/pirate-v2.css" />
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: #000; font-family: system-ui, sans-serif; }
+  body { padding-top: 46px; }
+
+  #variant-nav {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 9998;
+    background: #0a0a0a; border-bottom: 1px solid #222;
+    padding: 8px 16px; display: flex; gap: 8px; align-items: center;
+    font-family: system-ui, sans-serif;
+  }
+  #variant-nav .label { color: #666; font-size: 12px; margin-right: 4px; }
+  .variant-tab {
+    background: #1a1a1a; color: #ccc; border: 1px solid #333; border-radius: 6px;
+    padding: 6px 14px; font-size: 13px; cursor: pointer; transition: all 0.15s ease;
+  }
+  .variant-tab:hover { background: #262626; color: #fff; }
+  .variant-tab.active { background: #fff; color: #111; border-color: #fff; font-weight: 600; }
+  .variant { display: none; }
+  .variant.active { display: block; }
+
+  .director {
+    display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+    padding: 10px 20px; background: #0a0a0a; border-bottom: 1px dashed #333;
+    font-family: system-ui, sans-serif; font-size: 13px; color: #888;
+  }
+  .director b { color: #ddd; font-weight: 600; }
+  .director button {
+    background: #1e1e1e; color: #eee; border: 1px solid #333; border-radius: 5px;
+    padding: 5px 12px; font-size: 12px; cursor: pointer; transition: all 0.15s ease;
+  }
+  .director button:hover { background: #2c2c2c; }
+  .director button.stage-active { background: #4a7dff; border-color: #4a7dff; color: #fff; }
+  .director .spacer { flex: 1; }
+
+  .tv-wrap { padding: 40px 24px 80px; display: flex; justify-content: center; }
+  .tv {
+    width: 100%; max-width: 1000px; aspect-ratio: 16/9;
+    background: var(--color-bg); color: var(--color-text);
+    border-radius: 14px; box-shadow: 0 20px 60px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.04);
+    position: relative; overflow: hidden;
+    display: flex; align-items: center; justify-content: center;
+    font-family: var(--font-sans);
+  }
+
+  .scenery { position: absolute; inset: 0; z-index: 0; pointer-events: none; }
+  .scenery svg { width: 100%; height: 100%; }
+
+  .stage-block { display: none; width: 100%; height: 100%; align-items: center; justify-content: center; flex-direction: column; padding: 32px; text-align: center; position: relative; z-index: 1; }
+  .stage-block.active { display: flex; }
+
+  .claim-text {
+    font-family: var(--font-display); font-weight: 700;
+    font-size: clamp(22px, 3.4vw, 38px); line-height: 1.35; max-width: 780px;
+    animation: fadeUp 0.5s ease;
+  }
+  .claim-text .name { color: var(--color-lantern); }
+  .claim-text .challenge { color: var(--color-primary); }
+
+  .board { display: flex; gap: 26px; flex-wrap: wrap; align-items: flex-start; justify-content: center; animation: fadeUp 0.4s ease; }
+  .group { background: color-mix(in srgb, var(--color-surface) 92%, black); border: 1px solid var(--color-border); border-radius: var(--radius-lg); padding: 14px 16px; box-shadow: var(--shadow-md); backdrop-filter: blur(1px); }
+  .group .name { font-family: var(--font-display); font-weight: 700; font-size: var(--text-lg); margin: 0 0 10px; text-align: center; color: var(--color-text); }
+  .dice-row { display: flex; gap: 8px; }
+  .die {
+    width: 50px; height: 50px; border-radius: var(--radius-md);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 28px; background: var(--color-surface-raised); color: var(--color-text-muted);
+    transition: all 0.3s ease;
+  }
+  .die.matches { color: var(--color-text); }
+  .die.counted {
+    color: var(--color-primary);
+    background: color-mix(in srgb, var(--color-primary) 20%, var(--color-surface-raised));
+    box-shadow: var(--glow);
+    transform: scale(1.1);
+  }
+
+  .verdict-overlay {
+    position: absolute; inset: 0; display: none; align-items: center; justify-content: center;
+    flex-direction: column; background: color-mix(in srgb, var(--color-bg) 80%, transparent);
+    text-align: center; padding: 32px; animation: fadeIn 0.4s ease; z-index: 2;
+  }
+  .verdict-overlay.active { display: flex; }
+  .verdict-text {
+    font-family: var(--font-display); font-weight: 700; color: var(--color-lantern);
+    font-size: clamp(20px, 3vw, 34px); line-height: 1.35; max-width: 760px;
+    text-shadow: var(--lantern-glow);
+    animation: lanternPulse 2.4s ease-in-out infinite;
+  }
+  @keyframes lanternPulse {
+    0%, 100% { text-shadow: 0 0 16px rgba(232,163,61,0.4); }
+    50% { text-shadow: 0 0 34px rgba(232,163,61,0.8); }
+  }
+  .continue-status { margin-top: 26px; color: var(--color-text-muted); font-size: var(--text-sm); }
+
+  @keyframes fadeUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+  .tv-caption { text-align: center; color: #777; font-size: 12px; margin-top: 10px; font-family: system-ui, sans-serif; max-width: 720px; margin-left: auto; margin-right: auto; }
+
+  /* ---- immersive-only scenery motion ---- */
+  .lantern-group { transform-origin: 500px 40px; animation: lanternSwing 6s ease-in-out infinite; }
+  @keyframes lanternSwing { 0%, 100% { transform: rotate(-2.5deg); } 50% { transform: rotate(2.5deg); } }
+  .sea-glow { animation: seaPulse 5s ease-in-out infinite; }
+  @keyframes seaPulse { 0%, 100% { opacity: 0.55; } 50% { opacity: 0.85; } }
+</style>
+</head>
+<body>
+
+<div id="variant-nav">
+  <span class="label">SKETCH 003 · THE SHIP — SCENERY DEPTH</span>
+  <button class="variant-tab active" onclick="showVariant('subtle')">A: Warm/Cool Blend (minimal)</button>
+  <button class="variant-tab" onclick="showVariant('immersive')">B: Ship's Hold (full scenery)</button>
+</div>
+
+<!-- ============ A: SUBTLE — lighting/color treatment only ============ -->
+<div id="variant-subtle" class="variant active" data-theme="pirate-v2">
+  <div class="director">
+    <b>Director:</b>
+    <button data-stage="claim" onclick="setStage('subtle','claim')">1. Claim</button>
+    <button data-stage="board" onclick="setStage('subtle','board')">2. Board</button>
+    <button data-stage="counting" onclick="setStage('subtle','counting')">3. Counting</button>
+    <button data-stage="verdict" onclick="setStage('subtle','verdict')">4. Verdict</button>
+    <span class="spacer"></span>
+    <button onclick="playSequence('subtle')">▶ Play full sequence</button>
+  </div>
+  <div class="tv-wrap">
+    <div class="tv" data-theme="pirate-v2" id="tv-subtle">
+      <div class="scenery">
+        <svg viewBox="0 0 1000 562" preserveAspectRatio="xMidYMid slice">
+          <defs>
+            <radialGradient id="vignette-s" cx="50%" cy="42%" r="75%">
+              <stop offset="0%" stop-color="#000" stop-opacity="0"/>
+              <stop offset="100%" stop-color="#000" stop-opacity="0.55"/>
+            </radialGradient>
+            <radialGradient id="teal-wash-s" cx="15%" cy="10%" r="60%">
+              <stop offset="0%" stop-color="#4de8c2" stop-opacity="0.14"/>
+              <stop offset="100%" stop-color="#4de8c2" stop-opacity="0"/>
+            </radialGradient>
+            <radialGradient id="amber-wash-s" cx="88%" cy="85%" r="55%">
+              <stop offset="0%" stop-color="#e8a33d" stop-opacity="0.12"/>
+              <stop offset="100%" stop-color="#e8a33d" stop-opacity="0"/>
+            </radialGradient>
+          </defs>
+          <rect width="1000" height="562" fill="url(#teal-wash-s)"/>
+          <rect width="1000" height="562" fill="url(#amber-wash-s)"/>
+          <rect width="1000" height="562" fill="url(#vignette-s)"/>
+        </svg>
+      </div>
+      <div class="stage-block active" data-stage="claim">
+        <p class="claim-text"><span class="name">Kári</span> says there are at least 3 threes.<br><span class="challenge">Rós</span> says it's a lie.</p>
+      </div>
+      <div class="stage-block" data-stage="board">
+        <div class="board" id="board-subtle"></div>
+        <div class="verdict-overlay" id="verdict-subtle">
+          <p class="verdict-text">There are 2 threes. Kári's claim is a lie. Kári loses a die.</p>
+          <p class="continue-status">2/4 ready to continue</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <p class="tv-caption">No literal objects — just a warm amber wash in one corner blended against a cool teal wash in the other, plus a vignette. Content stays fully dominant; the "ship" is implied only by color and the font.</p>
+</div>
+
+<!-- ============ B: IMMERSIVE — full ship's hold scenery ============ -->
+<div id="variant-immersive" class="variant" data-theme="pirate-v2">
+  <div class="director">
+    <b>Director:</b>
+    <button data-stage="claim" onclick="setStage('immersive','claim')">1. Claim</button>
+    <button data-stage="board" onclick="setStage('immersive','board')">2. Board</button>
+    <button data-stage="counting" onclick="setStage('immersive','counting')">3. Counting</button>
+    <button data-stage="verdict" onclick="setStage('immersive','verdict')">4. Verdict</button>
+    <span class="spacer"></span>
+    <button onclick="playSequence('immersive')">▶ Play full sequence</button>
+  </div>
+  <div class="tv-wrap">
+    <div class="tv" data-theme="pirate-v2" id="tv-immersive">
+      <div class="scenery">
+        <svg viewBox="0 0 1000 562" preserveAspectRatio="xMidYMid slice">
+          <defs>
+            <linearGradient id="wood-s" x1="0" y1="0" x2="1" y2="0">
+              <stop offset="0%" stop-color="#1a120c"/>
+              <stop offset="100%" stop-color="#3a2a1a"/>
+            </linearGradient>
+            <radialGradient id="sea-glow-b" cx="50%" cy="50%" r="50%">
+              <stop offset="0%" stop-color="#4de8c2" stop-opacity="0.65"/>
+              <stop offset="55%" stop-color="#1c6a55" stop-opacity="0.35"/>
+              <stop offset="100%" stop-color="#0a1210" stop-opacity="0"/>
+            </radialGradient>
+            <radialGradient id="lantern-glow-b" cx="50%" cy="50%" r="50%">
+              <stop offset="0%" stop-color="#ffd27a" stop-opacity="0.95"/>
+              <stop offset="45%" stop-color="#e8a33d" stop-opacity="0.5"/>
+              <stop offset="100%" stop-color="#e8a33d" stop-opacity="0"/>
+            </radialGradient>
+            <radialGradient id="vignette-b" cx="50%" cy="46%" r="72%">
+              <stop offset="0%" stop-color="#000" stop-opacity="0"/>
+              <stop offset="100%" stop-color="#000" stop-opacity="0.7"/>
+            </radialGradient>
+          </defs>
+
+          <!-- hull ribs, left and right -->
+          <path d="M -40,0 C 90,140 90,420 -40,562 L 90,562 C 190,420 190,140 90,0 Z" fill="url(#wood-s)" opacity="0.9"/>
+          <path d="M 1040,0 C 910,140 910,420 1040,562 L 910,562 C 810,420 810,140 910,0 Z" fill="url(#wood-s)" opacity="0.9"/>
+          <!-- top beam -->
+          <rect x="120" y="0" width="760" height="26" fill="url(#wood-s)" opacity="0.85"/>
+
+          <!-- porthole with sea glow, top-right -->
+          <circle class="sea-glow" cx="860" cy="90" r="70" fill="url(#sea-glow-b)"/>
+          <circle cx="860" cy="90" r="56" fill="none" stroke="#5c4326" stroke-width="10"/>
+          <circle cx="860" cy="90" r="56" fill="none" stroke="#8a6a3c" stroke-width="2"/>
+          <path d="M 815,70 Q 860,60 905,80" stroke="#bdf2e2" stroke-width="2" fill="none" opacity="0.5"/>
+          <path d="M 820,105 Q 860,120 900,100" stroke="#bdf2e2" stroke-width="2" fill="none" opacity="0.4"/>
+
+          <!-- rope netting, top-left corner -->
+          <g stroke="#7a6544" stroke-width="2" opacity="0.55" fill="none">
+            <path d="M 30,0 L 150,110" /><path d="M 60,0 L 170,90" /><path d="M 90,0 L 190,70" />
+            <path d="M 0,30 L 150,110" /><path d="M 0,60 L 170,90" /><path d="M 0,90 L 190,70" />
+          </g>
+
+          <!-- hanging lantern, top-center -->
+          <g class="lantern-group">
+            <line x1="500" y1="40" x2="500" y2="95" stroke="#4a3a24" stroke-width="3"/>
+            <circle cx="500" cy="118" r="46" fill="url(#lantern-glow-b)"/>
+            <rect x="486" y="98" width="28" height="34" rx="4" fill="#2a2015" stroke="#8a6a3c" stroke-width="2"/>
+            <polygon points="480,98 520,98 500,84" fill="#2a2015" stroke="#8a6a3c" stroke-width="2"/>
+          </g>
+
+          <rect width="1000" height="562" fill="url(#vignette-b)"/>
+        </svg>
+      </div>
+      <div class="stage-block active" data-stage="claim">
+        <p class="claim-text"><span class="name">Kári</span> says there are at least 3 threes.<br><span class="challenge">Rós</span> says it's a lie.</p>
+      </div>
+      <div class="stage-block" data-stage="board">
+        <div class="board" id="board-immersive"></div>
+        <div class="verdict-overlay" id="verdict-immersive">
+          <p class="verdict-text">There are 2 threes. Kári's claim is a lie. Kári loses a die.</p>
+          <p class="continue-status">2/4 ready to continue</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <p class="tv-caption">Literal objects: curved hull ribs framing both edges, a porthole with a pulsing sea-glow, rope netting in the corner, and a lit lantern swinging gently overhead — the warm/cool blend now has an actual light source instead of just being an abstract wash.</p>
+</div>
+
+<div id="sketch-tools" style="position:fixed;bottom:12px;right:12px;z-index:9999;font-family:system-ui;font-size:12px;background:rgba(0,0,0,0.75);color:white;padding:8px 12px;border-radius:8px;opacity:0.45;transition:opacity 0.2s;" onmouseenter="this.style.opacity='1'" onmouseleave="this.style.opacity='0.45'">
+  Sketch 003 · pirate-scenery &nbsp;·&nbsp; how much literal background art vs. lighting alone?
+</div>
+
+<script>
+  const PLAYERS = [
+    { id: 'kari', name: 'Kári', dice: [4, 3, 6, 2, 5] },
+    { id: 'ros', name: 'Rós', dice: [1, 5, 3, 4, 6] },
+    { id: 'solvi', name: 'Sölvi', dice: [2, 4, 6, 1, 5] },
+    { id: 'embla', name: 'Embla', dice: [6, 2, 4, 1, 5] },
+  ];
+  const BID_FACE = 3;
+  const GLYPHS = ['⚀','⚁','⚂','⚃','⚄','⚅'];
+
+  function buildBoard(prefix) {
+    const board = document.getElementById('board-' + prefix);
+    board.innerHTML = '';
+    let matchIndex = 0;
+    PLAYERS.forEach((p) => {
+      const group = document.createElement('div');
+      group.className = 'group';
+      const name = document.createElement('p');
+      name.className = 'name';
+      name.textContent = p.name;
+      group.appendChild(name);
+      const row = document.createElement('div');
+      row.className = 'dice-row';
+      p.dice.forEach((face) => {
+        const matches = face === BID_FACE || (BID_FACE !== 1 && face === 1);
+        const die = document.createElement('span');
+        die.className = 'die' + (matches ? ' matches' : '');
+        die.textContent = GLYPHS[face - 1];
+        if (matches) die.dataset.matchIndex = matchIndex++;
+        row.appendChild(die);
+      });
+      group.appendChild(row);
+      board.appendChild(group);
+    });
+    return matchIndex;
+  }
+
+  const timers = {};
+  function clearTimers(prefix) {
+    (timers[prefix] || []).forEach(clearTimeout);
+    (timers[prefix] || []).forEach(clearInterval);
+    timers[prefix] = [];
+  }
+
+  function setStage(prefix, stage) {
+    clearTimers(prefix);
+    const tv = document.getElementById('tv-' + prefix);
+    tv.querySelectorAll('.stage-block').forEach((b) => b.classList.remove('active'));
+    tv.querySelector('[data-stage="' + (stage === 'claim' ? 'claim' : 'board') + '"]').classList.add('active');
+
+    const verdict = document.getElementById('verdict-' + prefix);
+    verdict.classList.remove('active');
+    tv.querySelectorAll('.die.counted').forEach((d) => d.classList.remove('counted'));
+
+    tv.closest('.variant').querySelectorAll('.director button[data-stage]').forEach((b) => {
+      b.classList.toggle('stage-active', b.dataset.stage === stage);
+    });
+
+    if (stage === 'claim') return;
+    const total = buildBoard(prefix);
+    if (stage === 'board') return;
+
+    if (stage === 'counting') {
+      let n = 0;
+      const tick = () => {
+        n++;
+        tv.querySelectorAll('.die[data-match-index]').forEach((d) => {
+          if (parseInt(d.dataset.matchIndex, 10) < n) d.classList.add('counted');
+        });
+        if (n >= total) clearInterval(interval);
+      };
+      const interval = setInterval(tick, 450);
+      timers[prefix].push(interval);
+      return;
+    }
+
+    if (stage === 'verdict') {
+      tv.querySelectorAll('.die[data-match-index]').forEach((d) => d.classList.add('counted'));
+      verdict.classList.add('active');
+    }
+  }
+
+  function playSequence(prefix) {
+    clearTimers(prefix);
+    setStage(prefix, 'claim');
+    timers[prefix].push(setTimeout(() => setStage(prefix, 'board'), 2200));
+    timers[prefix].push(setTimeout(() => setStage(prefix, 'counting'), 3100));
+    timers[prefix].push(setTimeout(() => setStage(prefix, 'verdict'), 3100 + 2 * 450 + 600));
+  }
+
+  function showVariant(id) {
+    document.querySelectorAll('.variant').forEach((v) => v.classList.remove('active'));
+    document.querySelectorAll('.variant-tab').forEach((t) => t.classList.remove('active'));
+    document.getElementById('variant-' + id).classList.add('active');
+    event.target.classList.add('active');
+  }
+
+  ['subtle', 'immersive'].forEach(buildBoard);
+</script>
+
+</body>
+</html>

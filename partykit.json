@@ -1,0 +1,4 @@
+{
+  "name": "where-game",
+  "main": "party/index.ts"
+}

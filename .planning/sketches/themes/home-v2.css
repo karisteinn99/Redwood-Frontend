@@ -1,0 +1,41 @@
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Inter:wght@400;500;600&display=swap');
+
+/* Home, warmed and simplified — welcoming golden-hour living room, not a
+   dim sepia tavern. One confident gold identity color, flat saturated door
+   colors instead of aged brass, more light than sketch 004/005's version. */
+:root,
+[data-theme='home-v2'] {
+  --color-bg: #4a2e1a;
+  --color-surface: #5c3c22;
+  --color-surface-raised: #6d4a2b;
+  --color-border: #8a6238;
+  --color-text: #fff3e0;
+  --color-text-muted: #e0c39a;
+  --color-primary: #f5b942;
+  --color-primary-hover: #ffc65c;
+  --color-teal: #4fb894;
+  --color-coral: #e2572b;
+  --color-danger: #b0301b;
+  --color-danger-bright: #ea5a35;
+  --color-success: #4fb894;
+
+  --font-display: 'Cormorant Garamond', Georgia, serif;
+  --font-sans: 'Inter', system-ui, sans-serif;
+
+  --text-xs: 0.75rem;
+  --text-sm: 0.9rem;
+  --text-base: 1rem;
+  --text-lg: 1.2rem;
+  --text-xl: 1.5rem;
+  --text-2xl: 2rem;
+  --text-3xl: 2.75rem;
+  --text-4xl: 3.75rem;
+
+  --space-1: 4px; --space-2: 8px; --space-3: 12px; --space-4: 16px;
+  --space-6: 24px; --space-8: 32px; --space-12: 48px;
+
+  --radius-sm: 4px; --radius-md: 10px; --radius-lg: 18px; --radius-full: 9999px;
+
+  --glow: 0 0 26px rgba(245, 185, 66, 0.4);
+  --shadow-md: 0 6px 18px rgba(0, 0, 0, 0.35);
+}

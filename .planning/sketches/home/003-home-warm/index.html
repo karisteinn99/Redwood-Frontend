@@ -1,0 +1,215 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Sketch 006 — Home, Warm</title>
+<link rel="stylesheet" href="../../themes/home-v2.css" />
+<link rel="stylesheet" href="../../themes/pirate-v2.css" />
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: #000; font-family: system-ui, sans-serif; }
+  body { padding-top: 46px; }
+
+  #variant-nav { position: fixed; top: 0; left: 0; right: 0; z-index: 9998; background: #0a0a0a; border-bottom: 1px solid #222; padding: 8px 16px; display: flex; gap: 8px; align-items: center; font-family: system-ui, sans-serif; }
+  #variant-nav .label { color: #666; font-size: 12px; }
+  .director { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 10px 20px; background: #0a0a0a; border-bottom: 1px dashed #333; font-family: system-ui, sans-serif; font-size: 13px; color: #888; }
+  .director button { background: #1e1e1e; color: #eee; border: 1px solid #333; border-radius: 5px; padding: 5px 12px; font-size: 12px; cursor: pointer; }
+  .director button:hover { background: #2c2c2c; }
+  .director .spacer { flex: 1; }
+
+  .tv-wrap { padding: 40px 24px 80px; display: flex; justify-content: center; }
+  .tv { width: 100%; max-width: 1050px; aspect-ratio: 16/9; border-radius: 14px; box-shadow: 0 20px 60px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.04); position: relative; overflow: hidden; }
+  .layer { position: absolute; inset: 0; }
+  .foyer-layer { background: var(--color-bg); color: var(--color-text); font-family: var(--font-sans); }
+  .ship-layer { background: var(--color-bg); color: var(--color-text); font-family: var(--font-sans); clip-path: circle(0px at 50% 50%); transition: clip-path 1.15s cubic-bezier(0.22,0.7,0.2,1); }
+  .ship-layer.open { clip-path: circle(1600px at var(--ox, 50%) var(--oy, 50%)); }
+
+  .foyer-bg-glow {
+    position: absolute; inset: 0; pointer-events: none;
+    background:
+      radial-gradient(ellipse at 50% -15%, rgba(245,185,66,0.28), transparent 62%),
+      radial-gradient(ellipse at 50% 115%, rgba(0,0,0,0.38), transparent 60%);
+  }
+  .foyer-inner { position: relative; width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: space-evenly; padding: 20px 34px; }
+
+  .welcome-row { display: flex; align-items: flex-end; gap: 24px; }
+  .candle { display: flex; flex-direction: column; align-items: center; }
+  .candle-flame { width: 11px; height: 17px; margin-bottom: -3px; border-radius: 50% 50% 50% 50% / 65% 65% 35% 35%; background: radial-gradient(circle at 50% 30%, #fff3c4, #f7a83c 55%, #d9581f 100%); box-shadow: 0 0 16px 5px rgba(247,168,60,0.55); animation: flameFlicker 2.3s ease-in-out infinite; }
+  .candle-stick { width: 8px; height: 30px; background: linear-gradient(180deg, #f2e6cf, #cdb98c); border-radius: 2px; }
+  @keyframes flameFlicker { 0%, 100% { transform: scaleY(1) scaleX(1); opacity: 0.92; } 50% { transform: scaleY(1.1) scaleX(0.92); opacity: 1; } }
+
+  .welcome { text-align: center; }
+  .welcome h1 { font-family: var(--font-display); font-weight: 700; font-size: var(--text-2xl); margin: 0; letter-spacing: 0.02em; }
+  .welcome .sub { color: var(--color-text-muted); font-size: var(--text-sm); margin: 3px 0 0; }
+
+  /* join card */
+  .join-card { display: flex; align-items: stretch; background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-lg); padding: 16px 26px; box-shadow: var(--shadow-md); width: 92%; max-width: 560px; }
+  .join-col { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; }
+  .join-label { font-size: var(--text-xs); text-transform: uppercase; letter-spacing: 0.14em; color: var(--color-text-muted); }
+  .join-url-text { font-family: var(--font-sans); font-size: var(--text-sm); color: var(--color-text-muted); text-align: center; margin: 0; }
+  .join-code { display: block; font-family: var(--font-display); font-weight: 700; font-size: var(--text-2xl); letter-spacing: 0.12em; color: var(--color-primary); margin-top: 4px; }
+  .join-divider { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 0 20px; align-self: stretch; }
+  .join-divider .line { width: 1px; flex: 1; min-height: 14px; background: var(--color-border); }
+  .join-divider .or { font-size: 11px; text-transform: uppercase; letter-spacing: 0.12em; color: var(--color-text-muted); }
+  .fake-qr { display: grid; grid-template-columns: repeat(6,1fr); grid-template-rows: repeat(6,1fr); gap: 3px; background: #fff; padding: 8px; border-radius: 8px; width: 128px; height: 128px; }
+  .fake-qr span { background: #16100b; }
+  .fake-qr span.off { background: transparent; }
+
+  /* doors */
+  .doors-row { display: flex; gap: 36px; align-items: flex-end; }
+  .door-frame { display: flex; flex-direction: column; align-items: center; gap: 12px; }
+  .door { width: 92px; height: 142px; border-radius: 46px 46px 6px 6px; position: relative; cursor: pointer; transition: transform 0.2s ease; }
+  .door:hover { transform: translateY(-4px); }
+  .door .knob { position: absolute; right: 12px; top: 52%; width: 9px; height: 9px; border-radius: 50%; background: rgba(0,0,0,0.35); box-shadow: 0 1px 0 rgba(255,255,255,0.35) inset; }
+  .door.gold { background: linear-gradient(160deg, #ffd579, #e0a337); }
+  .door.teal { background: linear-gradient(160deg, #7fe0c1, #3f9e80); }
+  .door.locked { background: linear-gradient(160deg, #8a7256, #5c4a34); opacity: 0.7; cursor: not-allowed; }
+  .door.locked:hover { transform: none; }
+  .door.ship-door::after {
+    content: ''; position: absolute; inset: -12px; border-radius: inherit;
+    box-shadow: 0 0 28px 8px rgba(79,184,148,0.55); animation: doorBreathe 3.2s ease-in-out infinite; pointer-events: none;
+  }
+  @keyframes doorBreathe { 0%, 100% { opacity: 0.45; } 50% { opacity: 1; } }
+  .lock-icon { font-size: 16px; margin-bottom: -2px; }
+  .door-label { font-family: var(--font-display); font-weight: 700; font-size: var(--text-base); letter-spacing: 0.16em; text-transform: uppercase; color: var(--color-primary); text-shadow: 0 0 12px rgba(245,185,66,0.35); }
+  .door-label.muted { color: var(--color-text-muted); text-shadow: none; }
+
+  .guests { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
+  .guest { background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-full); padding: 5px 16px; font-size: var(--text-sm); }
+  .guest.host { color: var(--color-primary); border-color: var(--color-primary); }
+
+  .ship-inner { position: relative; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; flex-direction: column; text-align: center; }
+  .ship-inner h2 { font-family: var(--font-display); font-weight: 700; font-size: var(--text-3xl); color: var(--color-primary); text-shadow: var(--lantern-glow); margin: 0; }
+  .ship-inner p { color: var(--color-text-muted); margin-top: 10px; }
+  .ship-scenery { position: absolute; inset: 0; z-index: 0; pointer-events: none; }
+  .ship-scenery svg { width: 100%; height: 100%; }
+  .lantern-group { transform-origin: 500px 40px; animation: lanternSwing 6s ease-in-out infinite; }
+  @keyframes lanternSwing { 0%, 100% { transform: rotate(-2.5deg); } 50% { transform: rotate(2.5deg); } }
+
+  .tv-caption { text-align: center; color: #777; font-size: 12px; margin-top: 10px; font-family: system-ui, sans-serif; max-width: 760px; margin-left: auto; margin-right: auto; }
+</style>
+</head>
+<body>
+
+<div id="variant-nav"><span class="label">SKETCH 006 · HOME, WARM (REDO)</span></div>
+
+<div class="director">
+  <b>Director:</b>
+  <span>Click the glowing Ship door to open the portal.</span>
+  <span class="spacer"></span>
+  <button onclick="closePortal('home')">↺ Reset to Home</button>
+</div>
+
+<div class="tv-wrap">
+  <div class="tv" id="tv-home">
+    <div class="layer foyer-layer" data-theme="home-v2">
+      <div class="foyer-bg-glow"></div>
+      <div class="foyer-inner">
+        <div class="welcome-row">
+          <div class="candle"><div class="candle-flame"></div><div class="candle-stick"></div></div>
+          <div class="welcome"><h1>Welcome Home</h1><p class="sub">Everyone's waiting for you</p></div>
+          <div class="candle"><div class="candle-flame"></div><div class="candle-stick"></div></div>
+        </div>
+
+        <div class="join-card">
+          <div class="join-col">
+            <p class="join-label">Join at</p>
+            <p class="join-url-text">gohomegames.com/join/<span class="join-code">JOLLY-7</span></p>
+          </div>
+          <div class="join-divider">
+            <span class="line"></span>
+            <span class="or">or</span>
+            <span class="line"></span>
+          </div>
+          <div class="join-col">
+            <p class="join-label">Scan</p>
+            <div class="fake-qr" id="fakeqr-home"></div>
+          </div>
+        </div>
+
+        <div class="doors-row">
+          <div class="door-frame">
+            <div class="door gold"><div class="knob"></div></div>
+            <p class="door-label">The Lounge</p>
+          </div>
+          <div class="door-frame">
+            <div class="door teal ship-door" id="door-home" onclick="openPortal('home', this)"><div class="knob"></div></div>
+            <p class="door-label">The Ship</p>
+          </div>
+          <div class="door-frame">
+            <div class="door locked"><div class="knob"></div></div>
+            <p class="door-label muted"><span class="lock-icon">🔒</span></p>
+          </div>
+        </div>
+
+        <div class="guests">
+          <span class="guest host">Kári · host</span>
+          <span class="guest">Rós</span>
+          <span class="guest">Sölvi</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="layer ship-layer" id="ship-home" data-theme="pirate-v2">
+      <div class="ship-scenery">
+        <svg viewBox="0 0 1000 562" preserveAspectRatio="xMidYMid slice">
+          <defs>
+            <linearGradient id="wood-w" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="#1a120c"/><stop offset="100%" stop-color="#3a2a1a"/></linearGradient>
+            <radialGradient id="lantern-glow-w" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="#ffd27a" stop-opacity="0.95"/><stop offset="45%" stop-color="#e8a33d" stop-opacity="0.5"/><stop offset="100%" stop-color="#e8a33d" stop-opacity="0"/></radialGradient>
+            <radialGradient id="vignette-w" cx="50%" cy="46%" r="72%"><stop offset="0%" stop-color="#000" stop-opacity="0"/><stop offset="100%" stop-color="#000" stop-opacity="0.7"/></radialGradient>
+          </defs>
+          <path d="M -40,0 C 90,140 90,420 -40,562 L 90,562 C 190,420 190,140 90,0 Z" fill="url(#wood-w)" opacity="0.9"/>
+          <path d="M 1040,0 C 910,140 910,420 1040,562 L 910,562 C 810,420 810,140 910,0 Z" fill="url(#wood-w)" opacity="0.9"/>
+          <g class="lantern-group">
+            <line x1="500" y1="40" x2="500" y2="95" stroke="#4a3a24" stroke-width="3"/>
+            <circle cx="500" cy="118" r="46" fill="url(#lantern-glow-w)"/>
+            <rect x="486" y="98" width="28" height="34" rx="4" fill="#2a2015" stroke="#8a6a3c" stroke-width="2"/>
+            <polygon points="480,98 520,98 500,84" fill="#2a2015" stroke="#8a6a3c" stroke-width="2"/>
+          </g>
+          <rect width="1000" height="562" fill="url(#vignette-w)"/>
+        </svg>
+      </div>
+      <div class="ship-inner"><h2>The Ship</h2><p>Liar's Dice is played here.</p></div>
+    </div>
+  </div>
+</div>
+<p class="tv-caption">Simplified and brightened: no plaques, no bunting, no rug, no jittery window circles. Two candles with a real flame shape, flat-colored painted doors with a plain gold caps label underneath, and the Ship door's glow is a slow, smooth breathing shadow — not a pulsing circle. Join card now has equal-width columns, a much bigger QR, and a divider where the line stops short of "or" instead of boxing it in.</p>
+
+<div id="sketch-tools" style="position:fixed;bottom:12px;right:12px;z-index:9999;font-family:system-ui;font-size:12px;background:rgba(0,0,0,0.75);color:white;padding:8px 12px;border-radius:8px;opacity:0.45;transition:opacity 0.2s;" onmouseenter="this.style.opacity='1'" onmouseleave="this.style.opacity='0.45'">
+  Sketch 006 · home-warm
+</div>
+
+<script>
+  function fillFakeQr(id) {
+    const grid = document.getElementById(id);
+    grid.innerHTML = '';
+    const pattern = [1,1,1,0,1,1, 1,0,0,1,0,1, 1,0,1,1,0,1, 0,1,0,0,1,0, 1,0,1,1,0,1, 1,1,0,1,1,1];
+    pattern.forEach((v) => {
+      const s = document.createElement('span');
+      if (!v) s.className = 'off';
+      grid.appendChild(s);
+    });
+  }
+  fillFakeQr('fakeqr-home');
+
+  function openPortal(prefix, doorEl) {
+    const tv = document.getElementById('tv-' + prefix);
+    const ship = document.getElementById('ship-' + prefix);
+    const doorRect = doorEl.getBoundingClientRect();
+    const tvRect = tv.getBoundingClientRect();
+    const ox = doorRect.left + doorRect.width / 2 - tvRect.left;
+    const oy = doorRect.top + doorRect.height / 2 - tvRect.top;
+    ship.style.setProperty('--ox', ox + 'px');
+    ship.style.setProperty('--oy', oy + 'px');
+    ship.classList.remove('open');
+    void ship.offsetWidth;
+    ship.classList.add('open');
+  }
+  function closePortal(prefix) {
+    document.getElementById('ship-' + prefix).classList.remove('open');
+  }
+</script>
+
+</body>
+</html>

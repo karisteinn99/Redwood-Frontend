@@ -1,0 +1,46 @@
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&display=swap');
+
+/* Sleek modern casino — near-black, metallic gold, emerald, crisp geometry. */
+:root,
+[data-theme='casino'] {
+  --color-bg: #0b0d10;
+  --color-surface: #14171c;
+  --color-surface-raised: #1c2026;
+  --color-border: #2a2f38;
+  --color-text: #f5f6f7;
+  --color-text-muted: #8b93a1;
+  --color-primary: #d4af37;
+  --color-primary-hover: #e8c14f;
+  --color-accent: #10b878;
+  --color-danger: #e5484d;
+  --color-danger-bright: #ff6b70;
+  --color-success: #10b878;
+
+  --font-display: 'Space Grotesk', system-ui, sans-serif;
+  --font-sans: 'Inter', system-ui, sans-serif;
+
+  --text-xs: 0.75rem;
+  --text-sm: 0.875rem;
+  --text-base: 1rem;
+  --text-lg: 1.15rem;
+  --text-xl: 1.4rem;
+  --text-2xl: 1.9rem;
+  --text-3xl: 2.6rem;
+  --text-4xl: 3.6rem;
+
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-12: 48px;
+
+  --radius-sm: 3px;
+  --radius-md: 6px;
+  --radius-lg: 10px;
+  --radius-full: 9999px;
+
+  --glow: 0 0 24px rgba(212, 175, 55, 0.3);
+  --shadow-md: 0 6px 18px rgba(0, 0, 0, 0.55);
+}

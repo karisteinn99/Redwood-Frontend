@@ -1,0 +1,316 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Sketch 001 — Dice Reveal</title>
+<link rel="stylesheet" href="../themes/tavern.css" />
+<link rel="stylesheet" href="../themes/casino.css" />
+<link rel="stylesheet" href="../themes/cartoon.css" />
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: #000; font-family: system-ui, sans-serif; }
+  body { padding-top: 46px; }
+
+  /* ---- variant tab nav ---- */
+  #variant-nav {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 9998;
+    background: #0a0a0a; border-bottom: 1px solid #222;
+    padding: 8px 16px; display: flex; gap: 8px; align-items: center;
+    font-family: system-ui, sans-serif;
+  }
+  #variant-nav .label { color: #666; font-size: 12px; margin-right: 4px; }
+  .variant-tab {
+    background: #1a1a1a; color: #ccc; border: 1px solid #333; border-radius: 6px;
+    padding: 6px 14px; font-size: 13px; cursor: pointer; transition: all 0.15s ease;
+  }
+  .variant-tab:hover { background: #262626; color: #fff; }
+  .variant-tab.active { background: #fff; color: #111; border-color: #fff; font-weight: 600; }
+
+  .variant { display: none; }
+  .variant.active { display: block; }
+
+  /* ---- director controls (sketch-only scaffolding, not part of the design) ---- */
+  .director {
+    display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+    padding: 10px 20px; background: #0a0a0a; border-bottom: 1px dashed #333;
+    font-family: system-ui, sans-serif; font-size: 13px; color: #888;
+  }
+  .director b { color: #ddd; font-weight: 600; }
+  .director button {
+    background: #1e1e1e; color: #eee; border: 1px solid #333; border-radius: 5px;
+    padding: 5px 12px; font-size: 12px; cursor: pointer; transition: all 0.15s ease;
+  }
+  .director button:hover { background: #2c2c2c; }
+  .director button.stage-active { background: #4a7dff; border-color: #4a7dff; color: #fff; }
+  .director .spacer { flex: 1; }
+
+  /* ---- the "TV" mock ---- */
+  .tv-wrap { padding: 40px 24px 80px; display: flex; justify-content: center; }
+  .tv {
+    width: 100%; max-width: 1000px; aspect-ratio: 16/9;
+    background: var(--color-bg); color: var(--color-text);
+    border-radius: 14px; box-shadow: 0 20px 60px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.04);
+    position: relative; overflow: hidden;
+    display: flex; align-items: center; justify-content: center;
+    font-family: var(--font-sans);
+  }
+
+  .stage-block { display: none; width: 100%; height: 100%; align-items: center; justify-content: center; flex-direction: column; padding: 32px; text-align: center; }
+  .stage-block.active { display: flex; }
+
+  /* claim */
+  .claim-text {
+    font-family: var(--font-display); font-weight: 700;
+    font-size: clamp(22px, 3.4vw, 38px); line-height: 1.3; max-width: 780px;
+    animation: fadeUp 0.5s ease;
+  }
+  .claim-text .name { color: var(--color-primary); }
+  .claim-text .challenge { color: var(--color-danger-bright); }
+
+  /* board */
+  .board { display: flex; gap: 28px; flex-wrap: wrap; align-items: flex-start; justify-content: center; animation: fadeUp 0.4s ease; }
+  .group { background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-lg); padding: 16px 18px; box-shadow: var(--shadow-md); }
+  .group .name { font-family: var(--font-display); font-weight: 700; font-size: var(--text-lg); margin: 0 0 10px; text-align: center; color: var(--color-text); }
+  .dice-row { display: flex; gap: 8px; }
+  .die {
+    width: 52px; height: 52px; border-radius: var(--radius-md);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 30px; background: var(--color-surface-raised); color: var(--color-text-muted);
+    transition: all 0.3s ease; position: relative;
+  }
+  .die.matches { color: var(--color-text); }
+  .die.counted {
+    color: var(--color-accent);
+    background: color-mix(in srgb, var(--color-accent) 18%, var(--color-surface-raised));
+    box-shadow: var(--glow);
+    transform: scale(1.12);
+  }
+
+  /* verdict overlay */
+  .verdict-overlay {
+    position: absolute; inset: 0; display: none; align-items: center; justify-content: center;
+    flex-direction: column; background: color-mix(in srgb, var(--color-bg) 82%, transparent);
+    text-align: center; padding: 32px; animation: fadeIn 0.4s ease;
+  }
+  .verdict-overlay.active { display: flex; }
+  .verdict-text {
+    font-family: var(--font-display); font-weight: 700; color: var(--color-primary);
+    font-size: clamp(20px, 3vw, 34px); line-height: 1.3; max-width: 760px;
+  }
+  .verdict-sub { margin-top: 18px; color: var(--color-text-muted); font-size: var(--text-base); }
+  .continue-status { margin-top: 26px; color: var(--color-text-muted); font-size: var(--text-sm); }
+
+  @keyframes fadeUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+  .tv-caption { text-align: center; color: #777; font-size: 12px; margin-top: 10px; font-family: system-ui, sans-serif; }
+</style>
+</head>
+<body>
+
+<div id="variant-nav">
+  <span class="label">SKETCH 001 · DICE REVEAL</span>
+  <button class="variant-tab active" onclick="showVariant('tavern')">A: Tavern</button>
+  <button class="variant-tab" onclick="showVariant('casino')">B: Casino</button>
+  <button class="variant-tab" onclick="showVariant('cartoon')">C: Cartoon House</button>
+</div>
+
+<!-- ============ VARIANT A: TAVERN ============ -->
+<div id="variant-tavern" class="variant active" data-theme="tavern">
+  <div class="director">
+    <b>Director:</b>
+    <button data-stage="claim" onclick="setStage('tavern','claim')">1. Claim</button>
+    <button data-stage="board" onclick="setStage('tavern','board')">2. Board</button>
+    <button data-stage="counting" onclick="setStage('tavern','counting')">3. Counting</button>
+    <button data-stage="verdict" onclick="setStage('tavern','verdict')">4. Verdict</button>
+    <span class="spacer"></span>
+    <button onclick="playSequence('tavern')">▶ Play full sequence</button>
+  </div>
+  <div class="tv-wrap">
+    <div class="tv" data-theme="tavern" id="tv-tavern">
+      <!-- claim -->
+      <div class="stage-block active" data-stage="claim">
+        <p class="claim-text"><span class="name">Kári</span> says there are at least 3 threes.<br><span class="challenge">Rós</span> says it's a lie.</p>
+      </div>
+      <!-- board + counting share a block -->
+      <div class="stage-block" data-stage="board">
+        <div class="board" id="board-tavern"></div>
+        <div class="verdict-overlay" id="verdict-tavern">
+          <p class="verdict-text">There are 2 threes. Kári's claim is a lie. Kári loses a die.</p>
+          <p class="continue-status">2/4 ready to continue</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <p class="tv-caption">Candlelit wood, parchment text, amber &amp; ember glow. Serif display type.</p>
+</div>
+
+<!-- ============ VARIANT B: CASINO ============ -->
+<div id="variant-casino" class="variant" data-theme="casino">
+  <div class="director">
+    <b>Director:</b>
+    <button data-stage="claim" onclick="setStage('casino','claim')">1. Claim</button>
+    <button data-stage="board" onclick="setStage('casino','board')">2. Board</button>
+    <button data-stage="counting" onclick="setStage('casino','counting')">3. Counting</button>
+    <button data-stage="verdict" onclick="setStage('casino','verdict')">4. Verdict</button>
+    <span class="spacer"></span>
+    <button onclick="playSequence('casino')">▶ Play full sequence</button>
+  </div>
+  <div class="tv-wrap">
+    <div class="tv" data-theme="casino" id="tv-casino">
+      <div class="stage-block active" data-stage="claim">
+        <p class="claim-text"><span class="name">Kári</span> says there are at least 3 threes.<br><span class="challenge">Rós</span> says it's a lie.</p>
+      </div>
+      <div class="stage-block" data-stage="board">
+        <div class="board" id="board-casino"></div>
+        <div class="verdict-overlay" id="verdict-casino">
+          <p class="verdict-text">There are 2 threes. Kári's claim is a lie. Kári loses a die.</p>
+          <p class="continue-status">2/4 ready to continue</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <p class="tv-caption">Near-black, metallic gold &amp; emerald, crisp geometric type. High contrast, premium.</p>
+</div>
+
+<!-- ============ VARIANT C: CARTOON HOUSE ============ -->
+<div id="variant-cartoon" class="variant" data-theme="cartoon">
+  <div class="director">
+    <b>Director:</b>
+    <button data-stage="claim" onclick="setStage('cartoon','claim')">1. Claim</button>
+    <button data-stage="board" onclick="setStage('cartoon','board')">2. Board</button>
+    <button data-stage="counting" onclick="setStage('cartoon','counting')">3. Counting</button>
+    <button data-stage="verdict" onclick="setStage('cartoon','verdict')">4. Verdict</button>
+    <span class="spacer"></span>
+    <button onclick="playSequence('cartoon')">▶ Play full sequence</button>
+  </div>
+  <div class="tv-wrap">
+    <div class="tv" data-theme="cartoon" id="tv-cartoon">
+      <div class="stage-block active" data-stage="claim">
+        <p class="claim-text"><span class="name">Kári</span> says there are at least 3 threes.<br><span class="challenge">Rós</span> says it's a lie.</p>
+      </div>
+      <div class="stage-block" data-stage="board">
+        <div class="board" id="board-cartoon"></div>
+        <div class="verdict-overlay" id="verdict-cartoon">
+          <p class="verdict-text">There are 2 threes. Kári's claim is a lie. Kári loses a die.</p>
+          <p class="continue-status">2/4 ready to continue</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <p class="tv-caption">Storybook-dusk purple, candy-bright pink/teal/yellow accents. Bouncy rounded type.</p>
+</div>
+
+<!-- sketch toolbar -->
+<div id="sketch-tools" style="position:fixed;bottom:12px;right:12px;z-index:9999;font-family:system-ui;font-size:12px;background:rgba(0,0,0,0.75);color:white;padding:8px 12px;border-radius:8px;opacity:0.45;transition:opacity 0.2s;" onmouseenter="this.style.opacity='1'" onmouseleave="this.style.opacity='0.45'">
+  Sketch 001 · dice-reveal &nbsp;·&nbsp; use the Director row to step through stages
+</div>
+
+<script>
+  // Same fixed dice data across all three themes so the comparison is apples-to-apples.
+  // Bid: "at least 3 threes". Actual: 2 threes (Kári has one, Rós has one) → claim is a lie, Kári loses.
+  const PLAYERS = [
+    { id: 'kari', name: 'Kári', dice: [4, 3, 6, 2, 5] },
+    { id: 'ros', name: 'Rós', dice: [1, 5, 3, 4, 6] },
+    { id: 'solvi', name: 'Sölvi', dice: [2, 4, 6, 1, 5] },
+    { id: 'embla', name: 'Embla', dice: [6, 2, 4, 1, 5] },
+  ];
+  const BID_FACE = 3;
+  const GLYPHS = ['⚀','⚁','⚂','⚃','⚄','⚅'];
+
+  function buildBoard(prefix) {
+    const board = document.getElementById('board-' + prefix);
+    board.innerHTML = '';
+    let matchIndex = 0;
+    PLAYERS.forEach((p) => {
+      const group = document.createElement('div');
+      group.className = 'group';
+      const name = document.createElement('p');
+      name.className = 'name';
+      name.textContent = p.name;
+      group.appendChild(name);
+      const row = document.createElement('div');
+      row.className = 'dice-row';
+      p.dice.forEach((face) => {
+        const matches = face === BID_FACE || (BID_FACE !== 1 && face === 1);
+        const die = document.createElement('span');
+        die.className = 'die' + (matches ? ' matches' : '');
+        die.textContent = GLYPHS[face - 1];
+        if (matches) die.dataset.matchIndex = matchIndex++;
+        row.appendChild(die);
+      });
+      group.appendChild(row);
+      board.appendChild(group);
+    });
+    return matchIndex; // total matching dice = actualCount
+  }
+
+  const timers = {};
+  function clearTimers(prefix) {
+    (timers[prefix] || []).forEach(clearTimeout);
+    (timers[prefix] || []).forEach(clearInterval);
+    timers[prefix] = [];
+  }
+
+  function setStage(prefix, stage) {
+    clearTimers(prefix);
+    const tv = document.getElementById('tv-' + prefix);
+    tv.querySelectorAll('.stage-block').forEach((b) => b.classList.remove('active'));
+    tv.querySelector('[data-stage="' + (stage === 'claim' ? 'claim' : 'board') + '"]').classList.add('active');
+
+    const verdict = document.getElementById('verdict-' + prefix);
+    verdict.classList.remove('active');
+    tv.querySelectorAll('.die.counted').forEach((d) => d.classList.remove('counted'));
+
+    // director button highlight
+    tv.closest('.variant').querySelectorAll('.director button[data-stage]').forEach((b) => {
+      b.classList.toggle('stage-active', b.dataset.stage === stage);
+    });
+
+    if (stage === 'claim') return;
+    const total = buildBoard(prefix);
+    if (stage === 'board') return;
+
+    if (stage === 'counting') {
+      let n = 0;
+      const tick = () => {
+        n++;
+        tv.querySelectorAll('.die[data-match-index]').forEach((d) => {
+          if (parseInt(d.dataset.matchIndex, 10) < n) d.classList.add('counted');
+        });
+        if (n >= total) clearInterval(interval);
+      };
+      const interval = setInterval(tick, 450);
+      timers[prefix].push(interval);
+      return;
+    }
+
+    if (stage === 'verdict') {
+      tv.querySelectorAll('.die[data-match-index]').forEach((d) => d.classList.add('counted'));
+      verdict.classList.add('active');
+    }
+  }
+
+  function playSequence(prefix) {
+    clearTimers(prefix);
+    setStage(prefix, 'claim');
+    timers[prefix].push(setTimeout(() => setStage(prefix, 'board'), 2200));
+    timers[prefix].push(setTimeout(() => setStage(prefix, 'counting'), 3100));
+    // verdict fires once counting naturally finishes (2 dice * 450ms) + a beat
+    timers[prefix].push(setTimeout(() => setStage(prefix, 'verdict'), 3100 + 2 * 450 + 600));
+  }
+
+  function showVariant(id) {
+    document.querySelectorAll('.variant').forEach((v) => v.classList.remove('active'));
+    document.querySelectorAll('.variant-tab').forEach((t) => t.classList.remove('active'));
+    document.getElementById('variant-' + id).classList.add('active');
+    event.target.classList.add('active');
+  }
+
+  // initial boards (in case someone jumps straight to board/counting/verdict)
+  ['tavern', 'casino', 'cartoon'].forEach(buildBoard);
+</script>
+
+</body>
+</html>

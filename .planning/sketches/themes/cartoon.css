@@ -1,0 +1,46 @@
+@import url('https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Inter:wght@400;500;600&display=swap');
+
+/* Playful cartoon house — storybook-dusk purple with candy-bright accents. */
+:root,
+[data-theme='cartoon'] {
+  --color-bg: #241b3d;
+  --color-surface: #34285a;
+  --color-surface-raised: #40326c;
+  --color-border: #4a3b7a;
+  --color-text: #fdf6ff;
+  --color-text-muted: #c9b8e8;
+  --color-primary: #ff5da2;
+  --color-primary-hover: #ff77b0;
+  --color-accent: #2dd4bf;
+  --color-danger: #ff6b6b;
+  --color-danger-bright: #ff8787;
+  --color-success: #ffd23f;
+
+  --font-display: 'Baloo 2', system-ui, sans-serif;
+  --font-sans: 'Inter', system-ui, sans-serif;
+
+  --text-xs: 0.75rem;
+  --text-sm: 0.9rem;
+  --text-base: 1rem;
+  --text-lg: 1.2rem;
+  --text-xl: 1.5rem;
+  --text-2xl: 2rem;
+  --text-3xl: 2.75rem;
+  --text-4xl: 3.75rem;
+
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-12: 48px;
+
+  --radius-sm: 8px;
+  --radius-md: 16px;
+  --radius-lg: 28px;
+  --radius-full: 9999px;
+
+  --glow: 0 0 28px rgba(255, 93, 162, 0.45);
+  --shadow-md: 0 8px 20px rgba(0, 0, 0, 0.35);
+}

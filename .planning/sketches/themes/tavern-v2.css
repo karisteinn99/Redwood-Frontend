@@ -1,0 +1,40 @@
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Inter:wght@400;500;600&display=swap');
+
+/* Tavern, warmed up — less sepia/whiskey-noir, more "cozy game night" life.
+   Same wood-and-candlelight family as tavern.css, but lighter, more saturated,
+   with a fresh sage-teal accent so it isn't all one note of brown. */
+:root,
+[data-theme='tavern-v2'] {
+  --color-bg: #2e1a10;
+  --color-surface: #452716;
+  --color-surface-raised: #5a3520;
+  --color-border: #7a4a28;
+  --color-text: #fdf0dc;
+  --color-text-muted: #d9b98a;
+  --color-primary: #e2572b;
+  --color-primary-hover: #f16b3f;
+  --color-accent: #f0a83c;
+  --color-danger: #b0301b;
+  --color-danger-bright: #ea5a35;
+  --color-success: #5fa88f;
+
+  --font-display: 'Cormorant Garamond', Georgia, serif;
+  --font-sans: 'Inter', system-ui, sans-serif;
+
+  --text-xs: 0.75rem;
+  --text-sm: 0.9rem;
+  --text-base: 1rem;
+  --text-lg: 1.2rem;
+  --text-xl: 1.5rem;
+  --text-2xl: 2rem;
+  --text-3xl: 2.75rem;
+  --text-4xl: 3.75rem;
+
+  --space-1: 4px; --space-2: 8px; --space-3: 12px; --space-4: 16px;
+  --space-6: 24px; --space-8: 32px; --space-12: 48px;
+
+  --radius-sm: 4px; --radius-md: 10px; --radius-lg: 18px; --radius-full: 9999px;
+
+  --glow: 0 0 24px rgba(240, 168, 60, 0.4);
+  --shadow-md: 0 6px 18px rgba(0, 0, 0, 0.4);
+}

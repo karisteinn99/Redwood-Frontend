@@ -1,0 +1,45 @@
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Inter:wght@400;500;600&display=swap');
+
+/* Home, take 3 — cozy cabin, not sepia tavern. Realistic neutral dark wood
+   (cooler, less saturated-orange than home.css/home-v2.css), a forest-green
+   garden accent, and a violet "magic" color reserved for the portal doors —
+   distinct from any room's own color (the Ship is teal) so it reads as
+   Home's own brand of magic. */
+:root,
+[data-theme='home-cabin'] {
+  --color-bg: #211d18;
+  --color-surface: #2e2820;
+  --color-surface-raised: #3a3228;
+  --color-border: #4f4636;
+  --color-text: #ede6d6;
+  --color-text-muted: #a99d84;
+  --color-primary: #b9a6f5;
+  --color-primary-hover: #cdbdf9;
+  --color-ember: #d97a3f;
+  --color-garden: #5c8a5f;
+  --color-garden-deep: #2f4a34;
+  --color-night-sky: #2a2452;
+  --color-danger: #a8412c;
+  --color-danger-bright: #c9563a;
+  --color-success: #5c8a5f;
+
+  --font-display: 'Cormorant Garamond', Georgia, serif;
+  --font-sans: 'Inter', system-ui, sans-serif;
+
+  --text-xs: 0.75rem;
+  --text-sm: 0.9rem;
+  --text-base: 1rem;
+  --text-lg: 1.2rem;
+  --text-xl: 1.5rem;
+  --text-2xl: 2rem;
+  --text-3xl: 2.75rem;
+  --text-4xl: 3.75rem;
+
+  --space-1: 4px; --space-2: 8px; --space-3: 12px; --space-4: 16px;
+  --space-6: 24px; --space-8: 32px; --space-12: 48px;
+
+  --radius-sm: 4px; --radius-md: 10px; --radius-lg: 18px; --radius-full: 9999px;
+
+  --glow: 0 0 26px rgba(185, 166, 245, 0.4);
+  --shadow-md: 0 6px 18px rgba(0, 0, 0, 0.4);
+}
