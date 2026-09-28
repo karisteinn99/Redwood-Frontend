@@ -3,6 +3,7 @@
 import PartySocket from 'partysocket';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
+import { partyHost } from '@/lib/party-host';
 import type {
   ClientMessage,
   HelloMessage,
@@ -39,12 +40,7 @@ export function usePartyRoom(code: string, hello: HelloMessage | null) {
   useEffect(() => {
     if (!active) return;
 
-    const socket = new PartySocket({
-      host:
-        process.env.NEXT_PUBLIC_PARTYKIT_HOST ??
-        `${window.location.hostname}:1999`,
-      room: code,
-    });
+    const socket = new PartySocket({ host: partyHost(), room: code });
     socketRef.current = socket;
 
     socket.addEventListener('open', () => {

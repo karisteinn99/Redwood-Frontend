@@ -1,10 +1,10 @@
-// Smoke test for party/index.ts against a running PartyKit dev server.
+// Smoke test for party/index.ts against a running `wrangler dev` server.
 // Usage: node scripts/room-smoke.mjs [port]  (defaults to 1999)
 const PORT = process.argv[2] ?? '1999';
 // Persistence means a room's state outlives a single test run, so each run
 // needs a fresh, effectively-unique code — a 0-9 suffix collides too easily.
 const CODE = `SMOKE-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`;
-const url = `ws://127.0.0.1:${PORT}/party/${CODE}`;
+const url = `ws://127.0.0.1:${PORT}/parties/main/${CODE}`;
 
 let failed = false;
 const assert = (cond, msg) => {

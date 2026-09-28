@@ -1,4 +1,20 @@
-import type * as Party from 'partykit/server';
+// Plain Cloudflare Worker + Durable Object, deployed via Wrangler.
+// Previously ran on PartyKit; migrated off it because PartyKit's managed
+// platform had three separate live bugs (broken dashboard login, a shared
+// *.partykit.dev zone at Cloudflare's domain cap, and a deploy backend that
+// still requests the pre-SQLite Durable Object migration type). See
+// AGENTS.md and plans/platform.md for the full story.
+//
+// The client (partysocket) is unchanged — this Worker's top-level fetch
+// replicates PartyKit's own `/parties/main/<room>` URL convention so
+// lib/party-host.ts, use-party-room.ts and app/page.tsx's occupancy check
+// all keep working exactly as before, just pointed at a different host.
+import type {
+  DurableObjectNamespace,
+  DurableObjectState,
+  ExecutionContext,
+  WebSocket as PartyWebSocket,
+} from '@cloudflare/workers-types';
 
 import { GAMES, gameInfos } from '../games';
 import type { GameContext, Viewer } from '../shared/game';
@@ -10,11 +26,26 @@ import type {
   ServerMessage,
 } from '../shared/party-types';
 
+// WebSocketPair is a genuine Workers runtime global (like `fetch`), not an
+// npm-importable value — only its shape needs declaring here, and this
+// stays module-local since this file has imports/exports.
+declare const WebSocketPair: { new (): { 0: PartyWebSocket; 1: PartyWebSocket } };
+
+interface Env {
+  // Unparametrized: we only ever call .fetch() on the stub, no RPC methods,
+  // so there's no need for HomeRoom to carry the Rpc.DurableObjectBranded
+  // marker that a parametrized DurableObjectNamespace<HomeRoom> requires.
+  HOME_ROOM: DurableObjectNamespace;
+}
+
+// Persisted per seat. Connection liveness is tracked separately, at
+// runtime only (see `liveSockets`) — a raw WebSocket isn't serializable,
+// and unlike PartyKit's string connection ids we don't need one: the
+// WebSocket object itself is the key.
 interface Seat {
   id: string;
   name: string;
   token: string;
-  connId: string | null;
   joinedAt: number;
 }
 
@@ -38,38 +69,58 @@ interface Snapshot {
   gameState: unknown;
 }
 
-export default class HomeRoom implements Party.Server {
+export class HomeRoom {
   private phase: Phase = 'lobby';
   private seats = new Map<string, Seat>();
-  private conns = new Map<string, Role>();
+  private liveSockets = new Map<string, PartyWebSocket>(); // seatId -> its live socket
   private hostId: string | null = null;
   private gameId: string | null = null;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private gameState: any = null;
+  private ready: Promise<void>;
 
-  constructor(readonly room: Party.Room) {}
-
-  // Rebuild state after a hibernated room wakes up. Connections never
-  // survive a restart, so every seat starts disconnected until its phone
-  // reconnects with its token.
-  async onStart() {
-    const snapshot = await this.room.storage.get<Snapshot>(SNAPSHOT_KEY);
-    if (!snapshot) return;
-    this.hostId = snapshot.hostId;
-    this.seats = new Map(
-      snapshot.seats.map((s) => [s.id, { ...s, connId: null }])
-    );
-    if (snapshot.gameStateVersion !== GAME_STATE_VERSION) return; // stale shape — back to lobby, seats kept
-    this.phase = snapshot.phase;
-    this.gameId = snapshot.gameId;
-    this.gameState = snapshot.gameState;
+  constructor(private ctx: DurableObjectState) {
+    // Rebuild state after a hibernated room wakes up. Sockets never survive
+    // a restart, so every seat starts disconnected until its phone
+    // reconnects with its token. blockConcurrencyWhile means no request is
+    // handled until this finishes — the equivalent of PartyKit's onStart
+    // running before onConnect/onRequest.
+    this.ready = this.ctx.blockConcurrencyWhile(async () => {
+      const snapshot = await this.ctx.storage.get<Snapshot>(SNAPSHOT_KEY);
+      if (!snapshot) return;
+      this.hostId = snapshot.hostId;
+      this.seats = new Map(snapshot.seats.map((s) => [s.id, s]));
+      if (snapshot.gameStateVersion !== GAME_STATE_VERSION) return; // stale shape — back to lobby, seats kept
+      this.phase = snapshot.phase;
+      this.gameId = snapshot.gameId;
+      this.gameState = snapshot.gameState;
+    });
   }
 
-  onConnect(conn: Party.Connection) {
-    conn.send(this.stateMessage());
+  async fetch(request: Request): Promise<Response> {
+    await this.ready;
+
+    if (request.headers.get('Upgrade') === 'websocket') {
+      const pair = new WebSocketPair();
+      const [client, server] = Object.values(pair);
+      this.ctx.acceptWebSocket(server);
+      server.send(this.stateMessage());
+      // `webSocket` on ResponseInit is a Workers-only extension DOM's lib
+      // doesn't know about — this is the one place that's unavoidable.
+      return new Response(null, { status: 101, webSocket: client } as ResponseInit);
+    }
+
+    // Plain HTTP GET: lets a client check "is this room code already
+    // taken?" before committing to it. `seats` persists (see the
+    // constructor above), so this is true even for a since-abandoned room
+    // — the code stays retired.
+    return new Response(JSON.stringify({ occupied: this.seats.size > 0 }), {
+      headers: { 'content-type': 'application/json', 'access-control-allow-origin': '*' },
+    });
   }
 
-  onMessage(raw: string, sender: Party.Connection) {
+  async webSocketMessage(ws: PartyWebSocket, raw: string | ArrayBuffer) {
+    if (typeof raw !== 'string') return;
     let msg: ClientMessage;
     try {
       msg = JSON.parse(raw) as ClientMessage;
@@ -79,27 +130,27 @@ export default class HomeRoom implements Party.Server {
 
     if (msg.type === 'hello') {
       if (msg.role === 'tv') {
-        this.conns.set(sender.id, { role: 'tv' });
-        sender.send(this.stateMessage());
-        this.sendView(sender, { kind: 'tv' });
+        ws.serializeAttachment({ role: 'tv' } satisfies Role);
+        ws.send(this.stateMessage());
+        this.sendView(ws, { kind: 'tv' });
         return;
       }
-      this.seatPlayer(sender, msg.name, msg.token);
+      this.seatPlayer(ws, msg.name, msg.token);
       return;
     }
 
-    const seat = this.seatOf(sender);
+    const seat = this.seatOf(ws);
     if (!seat) return;
 
     // start/home are host-only; any seated player can send a game action.
     if (msg.type === 'action') {
-      this.handleAction(sender, seat.id, msg.action);
+      this.handleAction(ws, seat.id, msg.action);
       return;
     }
     if (seat.id !== this.hostId) return;
 
     if (msg.type === 'start') {
-      this.startGame(sender, msg.gameId);
+      this.startGame(ws, msg.gameId);
       return;
     }
     if (msg.type === 'home') {
@@ -112,16 +163,23 @@ export default class HomeRoom implements Party.Server {
     }
   }
 
-  onClose(conn: Party.Connection) {
-    const seat = this.seatOf(conn);
-    this.conns.delete(conn.id);
-    if (seat && seat.connId === conn.id) seat.connId = null;
+  async webSocketClose(ws: PartyWebSocket) {
+    this.handleDisconnect(ws);
+  }
+
+  async webSocketError(ws: PartyWebSocket) {
+    this.handleDisconnect(ws);
+  }
+
+  private handleDisconnect(ws: PartyWebSocket) {
+    const seat = this.seatOf(ws);
+    if (seat && this.liveSockets.get(seat.id) === ws) this.liveSockets.delete(seat.id);
     this.ensureHost();
     this.broadcastState();
     this.persist();
   }
 
-  private startGame(sender: Party.Connection, gameId: string) {
+  private startGame(sender: PartyWebSocket, gameId: string) {
     const fail = (message: string) => {
       const out: ServerMessage = { type: 'error', message };
       sender.send(JSON.stringify(out));
@@ -144,7 +202,7 @@ export default class HomeRoom implements Party.Server {
     this.persist();
   }
 
-  private handleAction(sender: Party.Connection, playerId: string, action: unknown) {
+  private handleAction(sender: PartyWebSocket, playerId: string, action: unknown) {
     if (this.phase !== 'playing' || !this.gameId) return;
     const def = GAMES[this.gameId];
     if (!def) return;
@@ -166,7 +224,7 @@ export default class HomeRoom implements Party.Server {
     return { random: () => Math.random(), hostId: this.hostId };
   }
 
-  private sendView(conn: Party.Connection, viewer: Viewer) {
+  private sendView(ws: PartyWebSocket, viewer: Viewer) {
     if (!this.gameId || this.gameState === null) return;
     const def = GAMES[this.gameId];
     if (!def) return;
@@ -176,20 +234,19 @@ export default class HomeRoom implements Party.Server {
       view: def.viewFor(this.gameState, viewer),
       finished: def.isFinished(this.gameState),
     };
-    conn.send(JSON.stringify(out));
+    ws.send(JSON.stringify(out));
   }
 
   private broadcastViews() {
-    for (const [connId, role] of this.conns) {
-      const conn = this.room.getConnection(connId);
-      if (!conn) continue;
-      const viewer: Viewer =
-        role.role === 'tv' ? { kind: 'tv' } : { kind: 'player', id: role.seatId };
-      this.sendView(conn, viewer);
+    for (const ws of this.ctx.getWebSockets()) {
+      const role = ws.deserializeAttachment() as Role | null;
+      if (!role) continue;
+      const viewer: Viewer = role.role === 'tv' ? { kind: 'tv' } : { kind: 'player', id: role.seatId };
+      this.sendView(ws, viewer);
     }
   }
 
-  private seatPlayer(conn: Party.Connection, name: string, token?: string) {
+  private seatPlayer(ws: PartyWebSocket, name: string, token?: string) {
     const cleanName = String(name ?? '').trim().slice(0, 20);
     if (!cleanName) return;
 
@@ -203,13 +260,12 @@ export default class HomeRoom implements Party.Server {
         id: crypto.randomUUID(),
         name: cleanName,
         token: crypto.randomUUID(),
-        connId: null,
         joinedAt: Date.now(),
       };
       this.seats.set(seat.id, seat);
     }
-    seat.connId = conn.id;
-    this.conns.set(conn.id, { role: 'player', seatId: seat.id });
+    this.liveSockets.set(seat.id, ws);
+    ws.serializeAttachment({ role: 'player', seatId: seat.id } satisfies Role);
     this.ensureHost();
 
     const you: ServerMessage = {
@@ -217,22 +273,22 @@ export default class HomeRoom implements Party.Server {
       playerId: seat.id,
       token: seat.token,
     };
-    conn.send(JSON.stringify(you));
+    ws.send(JSON.stringify(you));
     this.broadcastState();
-    this.sendView(conn, { kind: 'player', id: seat.id });
+    this.sendView(ws, { kind: 'player', id: seat.id });
     this.persist();
   }
 
-  private seatOf(conn: Party.Connection): Seat | undefined {
-    const role = this.conns.get(conn.id);
+  private seatOf(ws: PartyWebSocket): Seat | undefined {
+    const role = ws.deserializeAttachment() as Role | null;
     return role?.role === 'player' ? this.seats.get(role.seatId) : undefined;
   }
 
   private ensureHost() {
     const current = this.hostId ? this.seats.get(this.hostId) : undefined;
-    if (current?.connId) return;
+    if (current && this.liveSockets.has(current.id)) return;
     const next = [...this.seats.values()]
-      .filter((s) => s.connId)
+      .filter((s) => this.liveSockets.has(s.id))
       .sort((a, b) => a.joinedAt - b.joinedAt)[0];
     if (next) this.hostId = next.id;
   }
@@ -244,7 +300,7 @@ export default class HomeRoom implements Party.Server {
         id: s.id,
         name: s.name,
         isHost: s.id === this.hostId,
-        connected: s.connId !== null,
+        connected: this.liveSockets.has(s.id),
       }));
   }
 
@@ -260,7 +316,8 @@ export default class HomeRoom implements Party.Server {
   }
 
   private broadcastState() {
-    this.room.broadcast(this.stateMessage());
+    const msg = this.stateMessage();
+    for (const ws of this.ctx.getWebSockets()) ws.send(msg);
   }
 
   private persist() {
@@ -272,8 +329,25 @@ export default class HomeRoom implements Party.Server {
       gameId: this.gameId,
       gameState: this.gameState,
     };
-    // Fire-and-forget: state is rebuilt from the latest write in onStart,
-    // so an occasional dropped write just costs the room's most recent change.
-    void this.room.storage.put(SNAPSHOT_KEY, snapshot);
+    // Fire-and-forget: state is rebuilt from the latest write in the
+    // constructor, so an occasional dropped write just costs the room's
+    // most recent change.
+    void this.ctx.storage.put(SNAPSHOT_KEY, snapshot);
   }
 }
+
+const ROOM_PATH = /^\/parties\/main\/([^/]+)$/;
+
+export default {
+  async fetch(request: Request, env: Env, _ctx: ExecutionContext): Promise<Response> {
+    const url = new URL(request.url);
+    const match = ROOM_PATH.exec(url.pathname);
+    if (!match) return new Response('Not found', { status: 404 });
+
+    const room = decodeURIComponent(match[1]);
+    const id = env.HOME_ROOM.idFromName(room);
+    const stub = env.HOME_ROOM.get(id);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    return stub.fetch(request as any) as unknown as Promise<Response>;
+  },
+};

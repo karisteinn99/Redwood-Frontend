@@ -1,0 +1,9 @@
+{
+  "name": "where-game",
+  "main": "party/index.ts",
+  "compatibility_date": "2026-09-28",
+  "durable_objects": {
+    "bindings": [{ "name": "HOME_ROOM", "class_name": "HomeRoom" }]
+  },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["HomeRoom"] }]
+}
