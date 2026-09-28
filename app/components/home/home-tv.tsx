@@ -55,7 +55,7 @@ export function HomeTv({
         {/* right: doors */}
         <div className="flex items-end gap-[clamp(1rem,3vw,2.25rem)]">
           <Door label="The Lounge" labelClass="text-[var(--home-ember)]" />
-          <Door ref={shipDoorRef} label="The Ship" magic />
+          <Door ref={shipDoorRef} label="Liar's Game" magic />
           <Door label="" locked />
         </div>
       </div>

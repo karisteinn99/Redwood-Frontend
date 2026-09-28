@@ -80,14 +80,23 @@ assert(tv.log.view.finished === true, 'game reports finished');
 const token = a.log.you.token;
 a.ws.close();
 await wait();
+assert(
+  tv.log.state?.players.find((p) => p.name === 'Ben')?.isHost === true,
+  "host moves to Ben (earliest still-connected) while Anna is disconnected"
+);
+
 const a2 = await open();
 send(a2, { type: 'hello', role: 'player', name: 'Anna', token });
 await wait();
 assert(typeof a2.log.view?.view?.secret === 'number', 'reconnect gets a private view immediately');
 assert(a2.log.view.view.secret === a.log.view.view.secret, 'reconnect gets the same secret as before');
+assert(
+  tv.log.state?.players.find((p) => p.name === 'Anna')?.isHost === true,
+  'Anna reclaims host on reconnect (earliest joiner, standing rule)'
+);
 
-// host home (Anna's disconnect handed host to Ben; reconnecting doesn't reclaim it)
-send(b, { type: 'home' });
+// host home (Anna is host again after reconnecting)
+send(a2, { type: 'home' });
 await wait();
 assert(tv.log.state?.phase === 'lobby' && tv.log.state?.gameId === null, 'home returns to lobby');
 

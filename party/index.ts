@@ -284,9 +284,13 @@ export class HomeRoom {
     return role?.role === 'player' ? this.seats.get(role.seatId) : undefined;
   }
 
+  // Host is always the earliest-joined seat that's currently connected —
+  // re-evaluated on every join/disconnect, not just assigned once. If the
+  // original host's connection drops, host moves to the next-earliest
+  // connected player; the moment the original host reconnects, they get it
+  // back. If nobody's connected, hostId is left as-is (remembered for
+  // whoever reconnects first).
   private ensureHost() {
-    const current = this.hostId ? this.seats.get(this.hostId) : undefined;
-    if (current && this.liveSockets.has(current.id)) return;
     const next = [...this.seats.values()]
       .filter((s) => this.liveSockets.has(s.id))
       .sort((a, b) => a.joinedAt - b.joinedAt)[0];
