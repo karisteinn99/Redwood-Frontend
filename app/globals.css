@@ -63,6 +63,32 @@
   --home-night-sky: #2a2452;
 }
 
+@keyframes lanternSwing {
+  0%, 100% { transform: rotate(-2.5deg); }
+  50% { transform: rotate(2.5deg); }
+}
+.animate-lantern-swing {
+  animation: lanternSwing 6s ease-in-out infinite;
+  transform-origin: top center;
+}
+
+/* The Ship's own palette — dice/bluffing games live here, distinct from
+   Home's warm cabin. Deep ocean night, weathered wood, a ghostly teal glow
+   blended against warm lantern-amber light (see .planning/sketches/the-ship). */
+:root {
+  --ship-bg: #0a1210;
+  --ship-surface: #17251f;
+  --ship-surface-raised: #20342c;
+  --ship-border: #3d5c4e;
+  --ship-text: #e9f3e6;
+  --ship-text-muted: #8bab9b;
+  --ship-teal: #4de8c2;
+  --ship-teal-glow: rgba(77, 232, 194, 0.5);
+  --ship-lantern: #e8a33d;
+  --ship-lantern-glow: rgba(232, 163, 61, 0.55);
+  --ship-danger: #c2523a;
+}
+
 :root {
   --background: #ffffff;
   --foreground: #171717;

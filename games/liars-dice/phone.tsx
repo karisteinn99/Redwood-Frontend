@@ -27,6 +27,13 @@ function verdictHeadlineFor(reveal: Reveal, you: string, wasTrue: boolean, nameO
   return `${nameOf(reveal.loserId)} loses a die.`;
 }
 
+// Full-bleed background so the Ship's own colors show regardless of the
+// generic (bg-gray-900) wrapper the platform-level join page renders around
+// every game's Phone component.
+function ShipBackdrop() {
+  return <div className="fixed inset-0 -z-10 bg-[var(--ship-bg)]" />;
+}
+
 function RevealNarrative({
   reveal,
   stage,
@@ -49,23 +56,28 @@ function RevealNarrative({
 
   if (stage !== 'verdict') {
     return (
-      <div className="flex flex-col items-center text-center">
+      <div className="flex flex-col items-center text-center text-[var(--ship-text)]">
+        <ShipBackdrop />
         <p className="text-2xl font-bold">{buildStageText(reveal, you, nameOf)}</p>
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col items-center text-center">
-      <p className="text-2xl font-bold">{verdictHeadlineFor(reveal, you, wasTrue, nameOf)}</p>
-      <p className="mt-4 text-sm text-white/40">{verdictSentence(reveal, nameOf)}</p>
+    <div className="flex flex-col items-center text-center text-[var(--ship-text)]">
+      <ShipBackdrop />
+      <p className="text-2xl font-bold text-[var(--ship-lantern)]" style={{ textShadow: '0 0 16px var(--ship-lantern-glow)' }}>
+        {verdictHeadlineFor(reveal, you, wasTrue, nameOf)}
+      </p>
+      <p className="mt-4 text-sm text-[var(--ship-text-muted)]">{verdictSentence(reveal, nameOf)}</p>
 
       {acked ? (
-        <p className="mt-8 text-white/40">Waiting for the others…</p>
+        <p className="mt-8 text-[var(--ship-text-muted)]">Waiting for the others…</p>
       ) : (
         <button
           onClick={onContinue}
-          className="mt-8 w-full max-w-xs rounded-xl bg-blue-600 py-4 text-xl font-bold transition hover:bg-blue-500"
+          className="mt-8 w-full max-w-xs rounded-xl py-4 text-xl font-bold text-[var(--ship-bg)] transition hover:brightness-110"
+          style={{ background: 'var(--ship-teal)' }}
         >
           {isHost ? 'Continue for everyone' : 'Continue'}
         </button>
@@ -117,8 +129,11 @@ export function LiarsDicePhone({
 
   if (view.winnerId) {
     return (
-      <div className="flex flex-col items-center">
-        <p className="text-3xl font-bold">🏆 {nameOf(view.winnerId)} wins!</p>
+      <div className="flex flex-col items-center text-[var(--ship-text)]">
+        <ShipBackdrop />
+        <p className="text-3xl font-bold text-[var(--ship-lantern)]" style={{ textShadow: '0 0 16px var(--ship-lantern-glow)' }}>
+          🏆 {nameOf(view.winnerId)} wins!
+        </p>
       </div>
     );
   }
@@ -126,8 +141,9 @@ export function LiarsDicePhone({
   const canLower = bid.quantity > 1 && isLegalBid({ ...bid, quantity: bid.quantity - 1 }, view.currentBid);
 
   return (
-    <div className="flex w-full max-w-xs flex-col items-center">
-      <p className="text-white/40">Your dice</p>
+    <div className="flex w-full max-w-xs flex-col items-center text-[var(--ship-text)]">
+      <ShipBackdrop />
+      <p className="text-[var(--ship-text-muted)]">Your dice</p>
       <p className="mt-1 text-3xl">{view.yourDice.map((d) => faceGlyph(d)).join(' ')}</p>
 
       <div className="mt-6 text-center">
@@ -136,7 +152,7 @@ export function LiarsDicePhone({
             {view.currentBid.quantity} × {faceLabel(view.currentBid.face)}
           </p>
         ) : (
-          <p className="text-white/40">No bid yet</p>
+          <p className="text-[var(--ship-text-muted)]">No bid yet</p>
         )}
       </div>
 
@@ -166,7 +182,11 @@ export function LiarsDicePhone({
               <button
                 key={face}
                 onClick={() => setBid({ face, quantity: minimumLegalQuantity(face, view.currentBid) })}
-                className={`rounded-lg py-2 text-lg ${bid.face === face ? 'bg-blue-600' : 'bg-white/10'}`}
+                className="rounded-lg py-2 text-lg"
+                style={{
+                  background: bid.face === face ? 'var(--ship-teal)' : 'rgba(255,255,255,0.1)',
+                  color: bid.face === face ? 'var(--ship-bg)' : undefined,
+                }}
               >
                 {faceGlyph(face)}
               </button>
@@ -174,20 +194,22 @@ export function LiarsDicePhone({
           </div>
           <button
             onClick={() => send({ type: 'bid', quantity: bid.quantity, face: bid.face })}
-            className="w-full rounded-xl bg-blue-600 py-4 text-xl font-bold transition hover:bg-blue-500"
+            className="w-full rounded-xl py-4 text-xl font-bold text-[var(--ship-bg)] transition hover:brightness-110"
+            style={{ background: 'var(--ship-teal)' }}
           >
             Bid {bid.quantity} × {faceLabel(bid.face)}
           </button>
           <button
             onClick={() => send({ type: 'challenge' })}
             disabled={!view.currentBid}
-            className="w-full rounded-xl bg-red-600 py-4 text-xl font-bold transition hover:bg-red-500 disabled:opacity-30"
+            className="w-full rounded-xl py-4 text-xl font-bold text-white transition hover:brightness-110 disabled:opacity-30"
+            style={{ background: 'var(--ship-danger)' }}
           >
             Liar!
           </button>
         </div>
       ) : (
-        <p className="mt-10 text-white/40">Waiting for {nameOf(view.currentPlayerId)}…</p>
+        <p className="mt-10 text-[var(--ship-text-muted)]">Waiting for {nameOf(view.currentPlayerId)}…</p>
       )}
     </div>
   );

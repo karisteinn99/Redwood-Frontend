@@ -1,7 +1,12 @@
 # Liar's Dice
 
 First real game: proves the shared/private split with a game that's actually fun, replaces the demo.
-Depends on `platform.md` step 1 (done). **Built and playable.** Current focus: UX polish (this file's Interactivity/Reveal section is the latest round).
+Depends on `platform.md` step 1 (done). **Built, playable, and now visually the Ship's own game** (was plain dark Tailwind for a while — the pirate identity had only been designed in sketches and used for the Home portal's placeholder screen, never actually carried into the real `games/liars-dice/tv.tsx`/`phone.tsx`; fixed).
+
+## Visual identity: the Ship
+- Tokens in `app/globals.css` (`--ship-*`), same pattern as Home's `--home-*`. `games/liars-dice/ship-scenery.tsx` is the persistent backdrop (hull ribs, porthole, swinging lantern) used behind every screen — subtle enough that dice/text stay legible, since this is a functional game screen, not a mood board.
+- Teal (`--ship-teal`) is the "counted/active" accent (matching dice, current turn, primary buttons); lantern-amber (`--ship-lantern`) is reserved for the big verdict/winner lines, matching the sketch's warm/cool blend.
+- Verified: `tsc` clean, `liars-dice-smoke.mjs` still 28/28 (purely visual change, protocol untouched), both `/room` and `/join` routes load without import-time errors.
 
 **Rules locked in:** 1s are wild (count toward any bid). The player who lost the last challenge opens the next round's bidding.
 
