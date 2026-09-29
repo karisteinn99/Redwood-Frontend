@@ -76,7 +76,7 @@ export default function TvPage({ params }: { params: Promise<{ code: string }> }
       <div className="relative h-screen w-screen overflow-hidden">
         <HomeTv code={code} joinUrl={joinUrl} players={players} shipDoorRef={shipDoorRef} />
         <div
-          className="absolute inset-0 bg-gray-900 text-white transition-[clip-path] duration-[1150ms] ease-[cubic-bezier(0.22,0.7,0.2,1)]"
+          className="absolute inset-0 text-white transition-[clip-path] duration-[1150ms] ease-[cubic-bezier(0.22,0.7,0.2,1)]"
           style={{ clipPath: `circle(${portalOpen ? '150%' : '0px'} at ${portal.x}px ${portal.y}px)` }}
         >
           <div className="flex h-full items-center justify-center">
@@ -90,7 +90,7 @@ export default function TvPage({ params }: { params: Promise<{ code: string }> }
   if (state?.phase === 'playing' && state.gameId) {
     const Tv = GAME_UI[state.gameId]?.Tv;
     return (
-      <div className="flex h-screen w-screen items-center justify-center bg-gray-900 text-white">
+      <div className="flex h-screen w-screen items-center justify-center text-white">
         {Tv && gameView ? (
           <Tv view={gameView.view} players={players} />
         ) : (

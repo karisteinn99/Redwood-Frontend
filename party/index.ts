@@ -80,20 +80,35 @@ export class HomeRoom {
   private ready: Promise<void>;
 
   constructor(private ctx: DurableObjectState) {
-    // Rebuild state after a hibernated room wakes up. Sockets never survive
-    // a restart, so every seat starts disconnected until its phone
-    // reconnects with its token. blockConcurrencyWhile means no request is
-    // handled until this finishes — the equivalent of PartyKit's onStart
-    // running before onConnect/onRequest.
+    // Rebuild state after a hibernated room wakes up. blockConcurrencyWhile
+    // means no request is handled until this finishes — the equivalent of
+    // PartyKit's onStart running before onConnect/onRequest.
     this.ready = this.ctx.blockConcurrencyWhile(async () => {
       const snapshot = await this.ctx.storage.get<Snapshot>(SNAPSHOT_KEY);
-      if (!snapshot) return;
-      this.hostId = snapshot.hostId;
-      this.seats = new Map(snapshot.seats.map((s) => [s.id, s]));
-      if (snapshot.gameStateVersion !== GAME_STATE_VERSION) return; // stale shape — back to lobby, seats kept
-      this.phase = snapshot.phase;
-      this.gameId = snapshot.gameId;
-      this.gameState = snapshot.gameState;
+      if (snapshot) {
+        this.hostId = snapshot.hostId;
+        this.seats = new Map(snapshot.seats.map((s) => [s.id, s]));
+        if (snapshot.gameStateVersion === GAME_STATE_VERSION) {
+          this.phase = snapshot.phase;
+          this.gameId = snapshot.gameId;
+          this.gameState = snapshot.gameState;
+        } // else: stale shape — back to lobby, seats kept
+      }
+
+      // Hibernation (not a true restart) keeps previously-accepted sockets
+      // alive at Cloudflare's edge even though this DO's own JS state was
+      // just unloaded and rebuilt from scratch — that's the whole point of
+      // the hibernatable WebSockets API. `liveSockets` being a fresh Map
+      // here does NOT mean those connections are gone; ctx.getWebSockets()
+      // is what still knows about them. Without this, every seat looks
+      // disconnected after any hibernate/wake cycle until it happens to
+      // send a new message — which silently handed host to whoever
+      // (re)joined right after a wake, regardless of true join order.
+      for (const ws of this.ctx.getWebSockets()) {
+        const role = ws.deserializeAttachment() as Role | null;
+        if (role?.role === 'player') this.liveSockets.set(role.seatId, ws);
+      }
+      this.ensureHost();
     });
   }
 
@@ -246,6 +261,19 @@ export class HomeRoom {
     }
   }
 
+  // Appends " 2", " 3", ... until the name doesn't collide with another
+  // seat's — never rejects a join over it, just keeps players visually
+  // distinguishable on the TV.
+  private uniqueName(base: string, excludeSeatId?: string): string {
+    const taken = new Set(
+      [...this.seats.values()].filter((s) => s.id !== excludeSeatId).map((s) => s.name),
+    );
+    if (!taken.has(base)) return base;
+    let n = 2;
+    while (taken.has(`${base} ${n}`)) n++;
+    return `${base} ${n}`;
+  }
+
   private seatPlayer(ws: PartyWebSocket, name: string, token?: string) {
     const cleanName = String(name ?? '').trim().slice(0, 20);
     if (!cleanName) return;
@@ -254,11 +282,11 @@ export class HomeRoom {
       ? [...this.seats.values()].find((s) => s.token === token)
       : undefined;
     if (seat) {
-      seat.name = cleanName;
+      seat.name = this.uniqueName(cleanName, seat.id);
     } else {
       seat = {
         id: crypto.randomUUID(),
-        name: cleanName,
+        name: this.uniqueName(cleanName),
         token: crypto.randomUUID(),
         joinedAt: Date.now(),
       };

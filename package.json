@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev --turbopack",
-    "party:dev": "wrangler dev --port 1999",
+    "party:dev": "wrangler dev --port 1999 --ip 0.0.0.0",
     "party:deploy": "dotenv -e .env.local -- wrangler deploy",
     "build": "next build",
     "start": "next start",

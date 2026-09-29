@@ -39,8 +39,8 @@ export default function Home() {
   }, [router]);
 
   return (
-    <div className="flex h-screen items-center justify-center bg-gray-900 text-white">
-      <p className="text-2xl text-white/50">Welcome home…</p>
+    <div className="flex h-screen items-center justify-center bg-[var(--home-bg)] text-[var(--home-text)]">
+      <p className="font-serif text-2xl text-[var(--home-text-muted)]">Welcome home…</p>
     </div>
   );
 }

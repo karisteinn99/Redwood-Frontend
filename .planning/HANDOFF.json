@@ -1,0 +1,26 @@
+{
+  "version": "1.0",
+  "timestamp": "2026-09-29T18:43:47.145Z",
+  "source": "auto-compact",
+  "partial": false,
+  "phase": null,
+  "phase_name": null,
+  "phase_dir": null,
+  "plan": null,
+  "task": null,
+  "total_tasks": null,
+  "status": "auto-checkpoint",
+  "completed_tasks": [],
+  "remaining_tasks": [],
+  "blockers": [],
+  "human_actions_pending": [],
+  "decisions": [],
+  "uncommitted_files": [
+    {
+      "status": "M",
+      "path": ".vscode/settings.json"
+    }
+  ],
+  "next_action": null,
+  "context_notes": "Recent commits:\n9798747 Fix partykit deployment action\n9ac9c68 Full screen button\nca01125 First player is host - Name change from 'the ship' to 'Liars game'\nb8e4e3d pirate theme liars dice\n7150706 Trigger CI: verify deploy-party GitHub Action with Cloudflare secrets"
+}
