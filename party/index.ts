@@ -58,7 +58,7 @@ const SNAPSHOT_KEY = 'snapshot';
 // snapshot with a different version has its game dropped back to the lobby
 // on load — seats/host are unaffected — instead of restoring a shape the
 // current game code doesn't expect.
-const GAME_STATE_VERSION = 1;
+const GAME_STATE_VERSION = 2; // bumped: the demo game was removed from the registry
 
 interface Snapshot {
   gameStateVersion: number;

@@ -54,6 +54,18 @@ export function LiarsDiceTutorial({ onClose }: { onClose: () => void }) {
           </section>
 
           <section>
+            <p className="font-medium text-[var(--ship-text)]">For example</p>
+            <p>
+              Ana opens with <strong>3 × {faceGlyph(4)} Fours</strong>. Ben raises to{' '}
+              <strong>3 × {faceGlyph(6)} Sixes</strong> — same amount, higher face. Cleo raises again to
+              just <strong>3 × {faceGlyph(1)} Ones</strong> — still only 3, but ones beat every other
+              face, even sixes. Dan doesn&apos;t buy it and calls{' '}
+              <span style={{ color: 'var(--ship-danger)' }}>Liar!</span> — the dice get revealed, and
+              whoever was wrong loses a die.
+            </p>
+          </section>
+
+          <section>
             <p className="font-medium text-[var(--ship-text)]">Someone loses a die</p>
             <p>
               All dice are revealed. If the bid was right, the challenger loses a die. If it was wrong,

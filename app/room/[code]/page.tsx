@@ -1,11 +1,12 @@
 'use client';
 
-import { use, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { createRef, use, useEffect, useLayoutEffect, useRef, useState, type RefObject } from 'react';
 
 import { normalizeRoomCode } from '@/lib/room-code';
 import { usePartyRoom } from '@/lib/use-party-room';
 import type { HelloMessage } from '@shared/party-types';
 import { GAME_UI } from '@/games/ui';
+import { ROOM_DOORS } from '@/games/rooms';
 import { HomeTv } from '@/app/components/home/home-tv';
 
 const TV_HELLO: HelloMessage = { type: 'hello', role: 'tv' };
@@ -19,8 +20,11 @@ export default function TvPage({ params }: { params: Promise<{ code: string }> }
   const code = normalizeRoomCode(use(params).code);
   const { state, gameView } = usePartyRoom(code, TV_HELLO);
   const [origin, setOrigin] = useState('');
-  const shipDoorRef = useRef<HTMLDivElement>(null);
-  const doorPos = useRef<{ x: number; y: number } | null>(null);
+  // Stable across renders (lazy initializer runs once); one ref per door.
+  const doorRefs = useRef<Record<string, RefObject<HTMLDivElement | null>>>(
+    Object.fromEntries(ROOM_DOORS.map((d) => [d.gameId, createRef<HTMLDivElement>()])),
+  ).current;
+  const doorPos = useRef<Record<string, { x: number; y: number }>>({});
   const wasLobby = useRef(true);
 
   const [portal, setPortal] = useState<{ x: number; y: number } | null>(null);
@@ -36,22 +40,27 @@ export default function TvPage({ params }: { params: Promise<{ code: string }> }
       .catch(() => {});
   }, []);
 
-  // Keep the door's last known screen position fresh while it's on screen,
-  // so it's still available the instant the game starts and Home unmounts.
+  // Keep every door's last known screen position fresh while it's on
+  // screen, so it's still available the instant a game starts and Home
+  // unmounts.
   useLayoutEffect(() => {
-    if (state?.phase === 'playing' || !shipDoorRef.current) return;
-    const rect = shipDoorRef.current.getBoundingClientRect();
-    doorPos.current = { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
+    if (state?.phase === 'playing') return;
+    for (const [gameId, ref] of Object.entries(doorRefs)) {
+      if (!ref.current) continue;
+      const rect = ref.current.getBoundingClientRect();
+      doorPos.current[gameId] = { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
+    }
   });
 
-  // The Ship's door glows in the lobby; when the host starts the game, play
+  // A room's door glows in the lobby; when the host starts that game, play
   // a portal-open transition growing from that door instead of a hard cut.
   useEffect(() => {
-    const startingShip = wasLobby.current && state?.phase === 'playing' && state.gameId === 'liars-dice';
+    const gameId = state?.gameId;
+    const startingRoom = wasLobby.current && state?.phase === 'playing' && !!gameId && gameId in doorRefs;
     wasLobby.current = state?.phase !== 'playing';
-    if (!startingShip) return;
+    if (!startingRoom || !gameId) return;
 
-    const pos = doorPos.current ?? { x: window.innerWidth / 2, y: window.innerHeight / 2 };
+    const pos = doorPos.current[gameId] ?? { x: window.innerWidth / 2, y: window.innerHeight / 2 };
     setPortal(pos);
     setPortalOpen(false);
     const raf = requestAnimationFrame(() => setPortalOpen(true));
@@ -74,7 +83,7 @@ export default function TvPage({ params }: { params: Promise<{ code: string }> }
     const Tv = state?.gameId ? GAME_UI[state.gameId]?.Tv : undefined;
     return (
       <div className="relative h-screen w-screen overflow-hidden">
-        <HomeTv code={code} joinUrl={joinUrl} players={players} shipDoorRef={shipDoorRef} />
+        <HomeTv code={code} joinUrl={joinUrl} players={players} doorRefs={doorRefs} />
         <div
           className="absolute inset-0 text-white transition-[clip-path] duration-[1150ms] ease-[cubic-bezier(0.22,0.7,0.2,1)]"
           style={{ clipPath: `circle(${portalOpen ? '150%' : '0px'} at ${portal.x}px ${portal.y}px)` }}
@@ -102,7 +111,7 @@ export default function TvPage({ params }: { params: Promise<{ code: string }> }
 
   return (
     <div className="h-screen w-screen">
-      <HomeTv code={code} joinUrl={joinUrl} players={players} shipDoorRef={shipDoorRef} />
+      <HomeTv code={code} joinUrl={joinUrl} players={players} doorRefs={doorRefs} />
     </div>
   );
 }

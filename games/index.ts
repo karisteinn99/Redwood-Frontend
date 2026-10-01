@@ -1,12 +1,12 @@
 import type { GameDefinition, GameInfo } from '@shared/game';
 
-import { demoGame } from './demo/definition';
+import { goFishGame } from './go-fish/definition';
 import { liarsDiceGame } from './liars-dice/definition';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const GAMES: Record<string, GameDefinition<any, any, any>> = {
   [liarsDiceGame.id]: liarsDiceGame,
-  [demoGame.id]: demoGame, // kept as a minimal test fixture for the platform layer
+  [goFishGame.id]: goFishGame,
 };
 
 export function gameInfos(): GameInfo[] {

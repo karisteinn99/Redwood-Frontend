@@ -3,6 +3,7 @@
 import { QRCodeSVG } from 'qrcode.react';
 import { useEffect, useState, type RefObject } from 'react';
 
+import { ROOM_DOORS } from '@/games/rooms';
 import type { Player } from '@shared/party-types';
 
 // Home's own identity — a cozy cabin, distinct from any room's theme (see
@@ -46,12 +47,12 @@ export function HomeTv({
   code,
   joinUrl,
   players,
-  shipDoorRef,
+  doorRefs,
 }: {
   code: string;
   joinUrl: string;
   players: Player[];
-  shipDoorRef: RefObject<HTMLDivElement | null>;
+  doorRefs: Partial<Record<string, RefObject<HTMLDivElement | null>>>;
 }) {
   return (
     <div className="relative flex h-full w-full flex-col items-center justify-between gap-[clamp(0.5rem,2vh,1.25rem)] bg-[var(--home-bg)] p-[clamp(0.75rem,2vw,2rem)] text-[var(--home-text)]">
@@ -88,8 +89,9 @@ export function HomeTv({
 
         {/* right: doors */}
         <div className="flex items-end gap-[clamp(1rem,3vw,2.25rem)]">
-          <Door label="The Lounge" labelClass="text-[var(--home-ember)]" />
-          <Door ref={shipDoorRef} label="Liar's Game" magic />
+          {ROOM_DOORS.map((d) => (
+            <Door key={d.gameId} ref={doorRefs[d.gameId]} label={d.label} magic />
+          ))}
           <Door label="" locked />
         </div>
       </div>
@@ -199,13 +201,11 @@ function Door({
   label,
   magic,
   locked,
-  labelClass,
   ref,
 }: {
   label: string;
   magic?: boolean;
   locked?: boolean;
-  labelClass?: string;
   ref?: RefObject<HTMLDivElement | null>;
 }) {
   return (
@@ -244,11 +244,7 @@ function Door({
       {locked ? (
         <span className="text-[clamp(0.9rem,1.6vw,1.1rem)]">🔒</span>
       ) : (
-        <p
-          className={`font-serif text-[clamp(0.7rem,1.2vw,0.9rem)] font-bold tracking-widest uppercase ${
-            labelClass ?? 'text-[var(--home-magic)]'
-          }`}
-        >
+        <p className="font-serif text-[clamp(0.7rem,1.2vw,0.9rem)] font-bold tracking-widest text-[var(--home-magic)] uppercase">
           {label}
         </p>
       )}

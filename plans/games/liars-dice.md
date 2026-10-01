@@ -80,9 +80,9 @@ The game genuinely pauses on a challenge — `reduce` rejects `bid`/`challenge` 
 - Manual: TV + phones on LAN, play a full game, open the tutorial from a phone.
 
 ## Open questions for you
-1. Bid ordering rule above (simplified vs. classic doubling) — keep simplified, or want the classic rule?
-2. Demo game: currently kept in the registry as a test fixture (`games/demo/`) — remove once no longer useful?
-3. Anything you want in the tutorial beyond the rules themselves (e.g. a worked example round)?
+1. ~~Bid ordering rule above (simplified vs. classic doubling)~~ — resolved: kept the simplified ladder (explained the classic exchange-rate alternative, not switching to it).
+2. ~~Demo game: currently kept in the registry as a test fixture~~ — resolved: removed once Go Fish became the second real game (see `plans/games/go-fish.md`).
+3. ~~Anything you want in the tutorial beyond the rules themselves~~ — resolved: added a compact worked example ("For example" section) walking through an opening bid, a same-quantity raise onto a stronger face, a raise onto 1s, and a challenge — the tutorial previously never explicitly stated that 1 outranks even 6 for raising purposes, despite calling 1s "the strongest face" elsewhere.
 
 ## Bug found and fixed while testing
 `party/index.ts` gated every post-hello message (host-only), a leftover from before the game layer existed — so only the host could ever send a game `action`. Fixed: `start`/`home` stay host-only, `action` works for any seated player. Also: `start` now sends a proper `error` back to the host when it can't start (too few connected players, unknown game, already playing) instead of silently doing nothing — this was the actual cause of "the button does nothing."

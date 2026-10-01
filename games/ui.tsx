@@ -2,8 +2,9 @@ import type { ComponentType } from 'react';
 
 import type { Player } from '@shared/party-types';
 
-import { DemoPhone } from './demo/phone';
-import { DemoTv } from './demo/tv';
+import { GoFishPhone } from './go-fish/phone';
+import { GoFishTutorial } from './go-fish/tutorial';
+import { GoFishTv } from './go-fish/tv';
 import { LiarsDicePhone } from './liars-dice/phone';
 import { LiarsDiceTutorial } from './liars-dice/tutorial';
 import { LiarsDiceTv } from './liars-dice/tv';
@@ -20,5 +21,5 @@ export interface GameUi {
 
 export const GAME_UI: Record<string, GameUi> = {
   'liars-dice': { Tv: LiarsDiceTv, Phone: LiarsDicePhone, Tutorial: LiarsDiceTutorial },
-  demo: { Tv: DemoTv, Phone: DemoPhone },
+  'go-fish': { Tv: GoFishTv, Phone: GoFishPhone, Tutorial: GoFishTutorial },
 };
