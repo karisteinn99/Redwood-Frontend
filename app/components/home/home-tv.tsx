@@ -105,12 +105,13 @@ export function HomeTv({
         {players.map((p) => (
           <span
             key={p.id}
-            className={`rounded-full border px-[clamp(0.6rem,1.5vw,1rem)] py-[clamp(0.2rem,0.6vh,0.35rem)] text-[clamp(0.7rem,1.3vw,0.9rem)] ${
+            className={`animate-arrive flex items-center gap-1.5 rounded-full border px-[clamp(0.6rem,1.5vw,1rem)] py-[clamp(0.2rem,0.6vh,0.35rem)] text-[clamp(0.7rem,1.3vw,0.9rem)] ${
               p.isHost
                 ? 'border-[var(--home-magic)] text-[var(--home-magic)]'
                 : 'border-[var(--home-border)] bg-[var(--home-surface)]'
             } ${p.connected ? '' : 'opacity-30'}`}
           >
+            <span className="text-[1.3em] leading-none">{p.avatar}</span>
             {p.name}
             {p.isHost && ' · host'}
           </span>

@@ -106,3 +106,73 @@ body {
   background: var(--background);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+/* Home's arrivals — a guest chip popping in, and the "Sara is home" toast
+   (its duration is set inline to match the TV's ARRIVAL_MS). */
+@keyframes arrive {
+  0% { opacity: 0; transform: scale(0.6) translateY(6px); }
+  60% { opacity: 1; transform: scale(1.08) translateY(0); }
+  100% { opacity: 1; transform: scale(1); }
+}
+.animate-arrive {
+  animation: arrive 0.5s cubic-bezier(0.22, 0.7, 0.2, 1) both;
+}
+
+@keyframes arrivalToast {
+  0% { opacity: 0; transform: translateY(-16px) scale(0.9); }
+  10%, 85% { opacity: 1; transform: translateY(0) scale(1); }
+  100% { opacity: 0; transform: translateY(-8px) scale(0.97); }
+}
+.animate-arrival-toast {
+  animation: arrivalToast 3.2s ease-out both;
+}
+
+/* The Dock's own palette — Go Fish lives here. A lake at sunset: indigo-to-
+   coral sky over dark water, sun-bleached planks, cream playing cards. Coral
+   is the "your turn / active" accent (the Ship's teal, inverted warm); sun-
+   gold is reserved for the winner line. See .planning/sketches/the-dock. */
+:root {
+  --dock-sky-top: #1d2350;
+  --dock-sky-mid: #6b3f6e;
+  --dock-sky-low: #e8875a;
+  --dock-water: #12324a;
+  --dock-water-deep: #0b2033;
+  --dock-wood: #5a3d28;
+  --dock-wood-light: #7a5536;
+  --dock-surface: #10283b;
+  --dock-border: #2f5873;
+  --dock-text: #f6eee3;
+  --dock-text-muted: #a9bccb;
+  --dock-coral: #ff8a5c;
+  --dock-coral-glow: rgba(255, 138, 92, 0.5);
+  --dock-sun: #ffd27f;
+  --dock-sun-glow: rgba(255, 210, 127, 0.55);
+  --dock-card: #f8f1e3;
+  --dock-card-ink: #2a3a4a;
+  --dock-card-red: #c8463a;
+}
+
+@keyframes ripple {
+  0%, 100% { transform: translateX(0) scaleX(1); opacity: 0.25; }
+  50% { transform: translateX(14px) scaleX(1.15); opacity: 0.55; }
+}
+.animate-ripple {
+  animation: ripple 5s ease-in-out infinite;
+}
+
+@keyframes bob {
+  0%, 100% { transform: translateY(0) rotate(-4deg); }
+  50% { transform: translateY(5px) rotate(4deg); }
+}
+.animate-bob {
+  animation: bob 3.2s ease-in-out infinite;
+}
+
+/* A fresh Go Fish event: the commentary line splashes in. */
+@keyframes splash {
+  0% { opacity: 0; transform: translateY(10px) scale(0.96); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+.animate-splash {
+  animation: splash 0.45s cubic-bezier(0.22, 0.7, 0.2, 1) both;
+}

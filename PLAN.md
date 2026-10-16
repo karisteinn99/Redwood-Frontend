@@ -2,7 +2,7 @@
 
 Order matters: prove the multiplayer/game architecture first, the house comes after.
 
-**Current focus:** Two real games now exist — Liar's Dice (the Ship, full visual identity) and Go Fish (generic theme, proves the `GameDefinition` interface generalizes: no elimination, no bluffing/reveal-pause mechanic). The demo test-fixture game is gone. Home's door row is now data-driven (`games/rooms.ts`) instead of hardcoded to one game, so Go Fish took over the old decorative "Lounge" slot. Next: Go Fish's own room identity (deliberately deferred, same precedent Liar's Dice followed), lobby polish, the house, or remaining platform robustness (kick/transfer host, pruning stale seats).
+**Current focus:** Two real games, each in its own room — Liar's Dice on the Ship, Go Fish on the Dock. Lobby polish is done (avatars, "Sara is home" arrivals, a "Let someone in" QR overlay for late joiners), and so is the remaining platform robustness (host kick/transfer, pruning stale lobby seats, mid-game joiners wait for the next game). Next: the house (rooms as categories, doors as the picker, characters), visually verifying Home's responsive fit/portal timing, or a third room behind the locked door.
 
 | Area | File | Covers |
 | --- | --- | --- |

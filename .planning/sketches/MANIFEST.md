@@ -14,6 +14,7 @@ Different rooms of Home get their own permanent aesthetic (e.g. "the Ship" for d
 ## By room
 - [home/](home/MANIFEST.md) — Home's own identity: the foyer, arrival, doors, the join card. Currently on sketch 004, still not landed.
 - [the-ship/](the-ship/MANIFEST.md) — the Ship's identity: pirate/Davy Jones, for dice/bluffing games (Liar's Dice lives here). Currently on sketch 001, liked.
+- [the-dock/](the-dock/MANIFEST.md) — the Dock's identity: a lake at sunset, for Go Fish. No sketch round yet; design notes only.
 
 ## Reference Points
 - Jackbox (interaction model reference, explicitly differentiating on visual/world identity)

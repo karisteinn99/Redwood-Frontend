@@ -1,13 +1,17 @@
 import type { Player } from '@shared/party-types';
 
+import { CardBack, CardFace, FannedBacks } from './card';
 import type { GoFishEvent, GoFishPublicView } from './definition';
+import { DockScenery } from './dock-scenery';
 import { rankLabel } from './rank-glyphs';
 
-// Generic platform dark theme — Go Fish doesn't have its own room identity
-// yet (see AGENTS.md: rooms get a dedicated aesthetic as separate, later
-// work, same precedent Liar's Dice followed before its Ship reskin).
+// Go Fish lives on the Dock — its own permanent room identity (see
+// AGENTS.md), tokens `--dock-*` in app/globals.css.
 
-function eventSentence(event: GoFishEvent, nameOf: (id: string) => string): string {
+export function eventSentence(
+  event: GoFishEvent,
+  nameOf: (id: string) => string
+): string {
   const asker = nameOf(event.askerId);
   const target = nameOf(event.targetId);
   const rank = rankLabel(event.rank);
@@ -20,65 +24,131 @@ function eventSentence(event: GoFishEvent, nameOf: (id: string) => string): stri
   return `${asker} asked ${target} for ${rank}s and went fish.`;
 }
 
-function BookChips({ books }: { books: number[] }) {
-  if (books.length === 0) return <span className="text-white/30">—</span>;
+// No event id in state (none is needed for game logic), so a fresh event is
+// detected from everything an ask can change. Purely cosmetic: re-keys the
+// commentary line so its splash animation replays.
+export function eventKey(view: GoFishPublicView): string {
+  return `${view.stockCount}|${JSON.stringify(view.handCounts)}|${JSON.stringify(view.lastEvent)}`;
+}
+
+function Books({ books }: { books: number[] }) {
+  if (books.length === 0) return null;
   return (
-    <span className="flex flex-wrap gap-1">
+    <span className="flex flex-wrap justify-center gap-1">
       {books.map((rank, i) => (
-        <span key={i} className="rounded bg-white/10 px-1.5 py-0.5 text-xs font-bold">
-          {rankLabel(rank)}
-        </span>
+        <CardFace key={i} rank={rank} size="sm" />
       ))}
     </span>
   );
 }
 
-export function GoFishTv({ view, players }: { view: GoFishPublicView; players: Player[] }) {
-  const nameOf = (id: string) => players.find((p) => p.id === id)?.name ?? '?';
+export function GoFishTv({
+  view,
+  players,
+}: {
+  view: GoFishPublicView;
+  players: Player[];
+}) {
+  const player = (id: string) => players.find((p) => p.id === id);
+  const nameOf = (id: string) => player(id)?.name ?? '?';
 
   if (view.winnerIds && view.winnerIds.length > 0) {
     return (
-      <div className="flex h-full min-h-screen flex-col items-center justify-center bg-gray-900 text-white">
-        <p className="text-sm tracking-widest text-white/50 uppercase">Go Fish</p>
-        <p className="mt-6 text-5xl font-bold">
-          🏆 {view.winnerIds.map(nameOf).join(' and ')} {view.winnerIds.length > 1 ? 'win!' : 'wins!'}
+      <div className="flex h-full min-h-screen w-full flex-col items-center justify-center px-6 text-center text-[var(--dock-text)]">
+        <DockScenery />
+        <p className="text-sm tracking-widest text-[var(--dock-text-muted)] uppercase">
+          Go Fish · the Dock
         </p>
+        <p className="mt-6 text-[clamp(2.5rem,6vw,4.5rem)]">
+          {view.winnerIds.map((id) => player(id)?.avatar).join(' ')}
+        </p>
+        <p
+          className="mt-2 text-[clamp(2rem,4.5vw,3.5rem)] font-bold text-[var(--dock-sun)]"
+          style={{ textShadow: '0 0 24px var(--dock-sun-glow)' }}
+        >
+          {view.winnerIds.map(nameOf).join(' and ')}{' '}
+          {view.winnerIds.length > 1 ? 'win!' : 'wins!'}
+        </p>
+        <ul className="mt-10 flex flex-wrap justify-center gap-6">
+          {view.order.map((id) => (
+            <li key={id} className="flex flex-col items-center gap-2">
+              <span className="text-lg">
+                {player(id)?.avatar} {nameOf(id)} ·{' '}
+                {view.books[id]?.length ?? 0}
+              </span>
+              <Books books={view.books[id] ?? []} />
+            </li>
+          ))}
+        </ul>
       </div>
     );
   }
 
   return (
-    <div className="flex h-full min-h-screen flex-col items-center justify-center bg-gray-900 text-white">
-      <p className="text-sm tracking-widest text-white/50 uppercase">Go Fish</p>
-      <p className="mt-1 text-white/40">{view.stockCount} left in the stock</p>
+    <div className="flex h-full min-h-screen w-full flex-col items-center justify-between px-6 py-[clamp(1rem,4vh,3rem)] text-[var(--dock-text)]">
+      <DockScenery />
+      <p className="text-sm tracking-widest text-[var(--dock-text-muted)] uppercase">
+        Go Fish · the Dock
+      </p>
 
-      <ul className="mt-6 flex flex-wrap justify-center gap-6">
-        {view.order.map((id) => (
-          <li
-            key={id}
-            className={`rounded-xl px-5 py-3 text-center ${
-              id === view.currentPlayerId ? 'bg-blue-600/30 ring-2 ring-blue-400' : 'bg-white/5'
-            }`}
-          >
-            <p className="text-lg font-medium">{nameOf(id)}</p>
-            <p className="text-white/50">
-              {'🂠'.repeat(view.handCounts[id] ?? 0)} ({view.handCounts[id] ?? 0})
-            </p>
-            <div className="mt-2">
-              <BookChips books={view.books[id] ?? []} />
-            </div>
-          </li>
-        ))}
+      <ul className="flex flex-wrap justify-center gap-[clamp(0.75rem,2vw,1.5rem)]">
+        {view.order.map((id) => {
+          const active = id === view.currentPlayerId;
+          return (
+            <li
+              key={id}
+              className={`flex min-w-[9rem] flex-col items-center gap-2 rounded-2xl border px-4 py-3 transition ${
+                active
+                  ? 'border-[var(--dock-coral)]'
+                  : 'border-[var(--dock-border)]'
+              }`}
+              style={{
+                background:
+                  'color-mix(in srgb, var(--dock-surface) 85%, transparent)',
+                boxShadow: active
+                  ? '0 0 22px var(--dock-coral-glow)'
+                  : undefined,
+              }}
+            >
+              <p className="text-[clamp(1rem,1.8vw,1.3rem)] font-medium">
+                <span className="mr-1.5">{player(id)?.avatar}</span>
+                {nameOf(id)}
+              </p>
+              <FannedBacks count={view.handCounts[id] ?? 0} />
+              <Books books={view.books[id] ?? []} />
+            </li>
+          );
+        })}
       </ul>
 
-      <div className="mt-10 text-center">
-        {view.lastEvent ? (
-          <p className="text-xl">{eventSentence(view.lastEvent, nameOf)}</p>
-        ) : (
-          <p className="text-white/40">The game begins…</p>
-        )}
-        <p className="mt-2 text-white/50">{nameOf(view.currentPlayerId)}&apos;s turn</p>
+      <div className="flex flex-col items-center gap-4">
+        <div className="relative flex items-end">
+          <CardBack size="lg" className="absolute top-1 left-1 opacity-60" />
+          <CardBack size="lg" className="relative" />
+          <span className="ml-4 text-[var(--dock-text-muted)]">
+            {view.stockCount > 0
+              ? `${view.stockCount} in the pond`
+              : 'The pond is empty'}
+          </span>
+        </div>
+        <div key={eventKey(view)} className="animate-splash text-center">
+          {view.lastEvent ? (
+            <p className="text-[clamp(1.25rem,2.6vw,2rem)] font-medium">
+              {view.lastEvent.type === 'transfer' ? '🎣 ' : '🌊 '}
+              {eventSentence(view.lastEvent, nameOf)}
+            </p>
+          ) : (
+            <p className="text-[var(--dock-text-muted)]">Lines in the water…</p>
+          )}
+        </div>
       </div>
+
+      <p className="text-[clamp(1rem,2vw,1.4rem)]">
+        <span className="text-[var(--dock-coral)]">
+          {player(view.currentPlayerId)?.avatar} {nameOf(view.currentPlayerId)}
+        </span>
+        &apos;s turn
+      </p>
     </div>
   );
 }

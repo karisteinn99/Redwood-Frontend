@@ -15,9 +15,10 @@ Depends on the game interface in `platform.md` step 1.
 - [ ] The locked door is still purely decorative — no room/game exists behind it yet.
 
 ## 2. Lobby polish
-- [ ] "Let someone in" QR overlay for late joins
-- [ ] Avatars / character choice
-- [ ] Arrival animation ("Sara is home")
+- [x] "Let someone in" QR overlay for late joins: host's phone has a "Let someone in" toggle during a game; the TV shows a small join card (QR + code) in the top corner, over whatever room is running. Server state (`RoomState.joinOverlay`), since it's driven from a phone and shown on the TV; the server drops it automatically once a new seat joins, and on start/home. Late joiners wait for the next game (see `plans/platform.md`).
+- [x] Avatars / character choice: 12 emoji characters (`shared/avatars.ts`). Picked on the join screen (random default so people who don't choose don't all ask for the same one), changeable from the phone's Home screen. Server keeps them unique while there are free ones (a taken pick on join is swapped for a free one; changing to a taken one is rejected with who has it); beyond 12 seats duplicates are allowed rather than refusing a join. Shown on the TV guest list, arrival toasts and in Go Fish. Real illustrated characters are a later investment — emoji are the placeholder.
+- [x] Arrival animation ("Sara is home"): the TV announces each new seat with a toast (avatar + "Sara is home") and guest chips pop in. Client-side only (`app/components/home/home-overlays.tsx`), diffed against the previous player list — people already there when the TV loads, and reconnects (same seat id), aren't announced. Shows over rooms too, not just Home.
+- [ ] Liar's Dice doesn't show avatars yet (Go Fish does) — small follow-up.
 
 ## 3. The house
 - [ ] Rooms as categories, doors as the game picker
