@@ -15,39 +15,6 @@
   animation: fadeIn 0.7s ease-in-out;
 }
 
-/* Home (the cabin) — candle flicker, portal glow/sparks, garden fireflies */
-@keyframes flameFlicker {
-  0%, 100% { transform: scaleY(1) scaleX(1); opacity: 0.92; }
-  50% { transform: scaleY(1.1) scaleX(0.92); opacity: 1; }
-}
-.animate-flame-flicker {
-  animation: flameFlicker 2.3s ease-in-out infinite;
-}
-
-@keyframes portalPulse {
-  0%, 100% { opacity: 0.5; }
-  50% { opacity: 1; }
-}
-.animate-portal-pulse {
-  animation: portalPulse 3.4s ease-in-out infinite;
-}
-
-@keyframes sparkFloat {
-  0%, 100% { opacity: 0; transform: translateY(4px); }
-  50% { opacity: 1; transform: translateY(-8px); }
-}
-.animate-spark-float {
-  animation: sparkFloat 3.2s ease-in-out infinite;
-}
-
-@keyframes twinkle {
-  0%, 100% { opacity: 0.15; transform: translateY(0); }
-  50% { opacity: 1; transform: translateY(-3px); }
-}
-.animate-twinkle {
-  animation: twinkle 2.6s ease-in-out infinite;
-}
-
 /* Home's own palette — cozy cabin, distinct from any room's theme */
 :root {
   --home-bg: #211d18;
@@ -61,6 +28,213 @@
   --home-garden: #5c8a5f;
   --home-garden-deep: #2f4a34;
   --home-night-sky: #2a2452;
+}
+
+/* Home TV (the Home TV design review; see the design system) ---------------- */
+:root {
+  --home-brass: #b8955a;
+  --home-code-top: #e2d8f7;
+  --home-code-mid: #c3b1ec;
+  --home-code-low: #9a85d3;
+}
+
+/* the wall: 172px planks in four tones, each with a dark seam and a catch-light */
+.home-wall {
+  background:
+    linear-gradient(90deg, rgba(0, 0, 0, 0.42) 0 2px, rgba(255, 220, 170, 0.05) 2px 3px, transparent 3px) 0 0 / 172px 100%,
+    linear-gradient(90deg, #2a221a 0 172px, #231c15 172px 344px, #2c241b 344px 516px, #261f17 516px 688px) 0 0 / 688px 100%;
+}
+
+/* the room code: the word in a twilight gradient, the number brighter */
+.home-code {
+  background: linear-gradient(180deg, var(--home-code-top) 0%, var(--home-code-mid) 45%, var(--home-code-low) 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+.home-code-num {
+  background: linear-gradient(180deg, #f6f1ff 0%, #ddd0fa 50%, #b9a4ec 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* a window breathes when its wave leaves, and holds the light while pointed at */
+.home-pane-light,
+.home-rim {
+  opacity: 0;
+  transition: opacity 2.8s cubic-bezier(0.3, 0, 0.2, 1);
+}
+.home-window-lit .home-pane-light {
+  opacity: 0.5;
+  transition: opacity 0.9s ease-in-out;
+}
+.home-window-lit .home-rim {
+  opacity: 0.55;
+  transition: opacity 0.9s ease-in-out;
+}
+
+/* the guest rail */
+.home-rail-list {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.home-rail-list > * {
+  flex: none;
+}
+.home-rail-overflow {
+  -webkit-mask-image: linear-gradient(180deg, #000 calc(100% - 210px), rgba(0, 0, 0, 0.35) calc(100% - 90px), transparent 100%);
+  mask-image: linear-gradient(180deg, #000 calc(100% - 210px), rgba(0, 0, 0, 0.35) calc(100% - 90px), transparent 100%);
+}
+.home-row {
+  position: relative;
+  isolation: isolate;
+  display: flex;
+  align-items: center;
+  gap: 34px;
+  padding: 10px 26px 10px 14px;
+  white-space: nowrap;
+  transition: opacity 0.8s ease;
+}
+/* the arrival capsule fades in and out; it never moves, and the row never changes height */
+.home-row::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: 9999px;
+  border: 2px solid var(--fresh);
+  background: rgba(36, 30, 23, 0.9);
+  opacity: 0;
+  transition: opacity 0.45s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.home-row-fresh::before {
+  opacity: 1;
+  transition: opacity 0.7s ease;
+}
+.home-row-sub {
+  opacity: 0;
+  transition: opacity 0.45s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.home-row-fresh .home-row-sub {
+  opacity: 1;
+  transition: opacity 0.5s ease 0.25s;
+}
+.home-row-enter {
+  animation: fadeIn 0.9s ease 0.2s both;
+}
+.home-host::before {
+  content: '';
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  margin: 0 9px 3px 0;
+  border-radius: 50%;
+  background: var(--home-brass);
+  vertical-align: middle;
+}
+
+/* the logo: "gohome" with the h as a lit candle (parts placed by home-logo.tsx) */
+.logo {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: stretch;
+  padding-top: 13px;
+  color: #ede6d6;
+  line-height: 1;
+}
+.logo-word {
+  font-family: var(--font-logo), Georgia, serif;
+  font-weight: 400;
+  font-size: 94px;
+  line-height: 1;
+  letter-spacing: -0.02em;
+  white-space: nowrap;
+}
+.logo-h {
+  position: relative;
+  color: transparent;
+  background: linear-gradient(180deg, #ffcf3f 0%, #ffd56a 16%, #f9df9e 30%, #f3e4c2 44%, #ede6d6 60%);
+  -webkit-background-clip: text;
+  background-clip: text;
+}
+.logo-h > i {
+  position: absolute;
+  opacity: 0;
+  transition: opacity 0.4s ease;
+}
+.logo-lit > i {
+  opacity: 1;
+}
+.logo-pool {
+  left: var(--pl-l);
+  top: var(--pl-t);
+  width: var(--pl-w);
+  height: 0.03em;
+  border-radius: 50%;
+  background: #fff3c4;
+  transform: rotate(var(--pl-r));
+}
+.logo-wax {
+  width: var(--wx-w);
+  border-radius: 0 0 0.03em 0.03em;
+  background: linear-gradient(#fff1bf, #f7e2a6 70%, #f2d891);
+  box-shadow: inset -0.006em 0 0 rgba(170, 120, 40, 0.25);
+}
+.logo-wax1 {
+  left: var(--w1-l);
+  top: var(--w1-t);
+  height: 0.15em;
+}
+.logo-wax2 {
+  left: var(--w2-l);
+  top: var(--w2-t);
+  height: 0.085em;
+}
+.logo-wick {
+  left: var(--wk-l);
+  top: var(--wk-t);
+  width: 0.008em;
+  height: var(--wk-h);
+  border-radius: 0.004em;
+  background: linear-gradient(#1a120b, #3b2a1a);
+}
+.logo-flame {
+  left: var(--fl-l);
+  top: var(--fl-t);
+  width: 0.105em;
+  height: 0.2em;
+  filter: drop-shadow(0 0 0.06em rgba(255, 190, 90, 0.6));
+}
+.logo-flame svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.logo-games {
+  display: flex;
+  align-items: center;
+  gap: 0.7em;
+  font-family: var(--font-read), Arial, sans-serif;
+  font-size: 16px;
+  font-weight: 400;
+  letter-spacing: 0.55em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: #a99d84;
+}
+.logo-games span {
+  margin-right: -0.55em;
+}
+.logo-games i {
+  flex: 1;
+  height: 1px;
+  background: var(--home-brass);
+  opacity: 0.5;
 }
 
 @keyframes lanternSwing {

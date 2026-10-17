@@ -2,7 +2,7 @@
 
 Order matters: prove the multiplayer/game architecture first, the house comes after.
 
-**Current focus:** Two real games, each in its own room — Liar's Dice on the Ship, Go Fish on the Dock. Lobby polish is done (avatars, "Sara is home" arrivals, a "Let someone in" QR overlay for late joiners), and so is the remaining platform robustness (host kick/transfer, pruning stale lobby seats, mid-game joiners wait for the next game). Next: the house (rooms as categories, doors as the picker, characters), visually verifying Home's responsive fit/portal timing, or a third room behind the locked door.
+**Current focus:** Two real games, each in its own room — Liar's Dice on the Ship, Go Fish on the Dock. The Home TV is rebuilt from the finished design review (see `plans/home.md`): candle logo, styled QR, hyphen-less room codes (`JOLLY42`), breathing room windows, the guest rail, and player tokens instead of emojis. Next: design reviews for the phone and game screens, the house (rooms as categories, characters), or a third room behind the "In construction" window.
 
 | Area | File | Covers |
 | --- | --- | --- |

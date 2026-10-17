@@ -17,7 +17,7 @@ import type {
 } from '@cloudflare/workers-types';
 
 import { GAMES, gameInfos } from '../games';
-import { AVATARS, isAvatar } from '../shared/avatars';
+import { AVATARS, AVATAR_NAMES, isAvatar } from '../shared/avatars';
 import type { GameContext, Viewer } from '../shared/game';
 import type {
   ClientMessage,
@@ -111,8 +111,12 @@ export class HomeRoom {
       if (snapshot) {
         this.hostId = snapshot.hostId;
         this.preferredHostId = snapshot.preferredHostId ?? null;
-        // Seats persisted before avatars existed get one on load.
-        this.seats = new Map(snapshot.seats.map((s) => [s.id, { ...s, avatar: s.avatar ?? AVATARS[0] }]));
+        // Seats persisted before avatars existed, or with an old emoji
+        // character, get a free token on load.
+        this.seats = new Map();
+        for (const s of snapshot.seats) {
+          this.seats.set(s.id, { ...s, avatar: isAvatar(s.avatar) ? s.avatar : this.pickAvatar(undefined) });
+        }
         if (snapshot.gameStateVersion === GAME_STATE_VERSION) {
           this.phase = snapshot.phase;
           this.gameId = snapshot.gameId;
@@ -331,7 +335,7 @@ export class HomeRoom {
   private setAvatar(sender: PartyWebSocket, seat: Seat, avatar: string) {
     if (!isAvatar(avatar)) return this.fail(sender, 'Unknown character');
     const owner = [...this.seats.values()].find((s) => s.avatar === avatar && s.id !== seat.id);
-    if (owner) return this.fail(sender, `${owner.name} is already ${avatar}`);
+    if (owner) return this.fail(sender, `${owner.name} is already ${AVATAR_NAMES[avatar]}`);
     seat.avatar = avatar;
     this.broadcastState();
     this.persist();

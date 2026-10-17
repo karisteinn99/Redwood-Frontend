@@ -56,32 +56,32 @@ const join = async (name, avatar, token) => {
 
 const tv = await open();
 send(tv, { type: 'hello', role: 'tv' });
-const a = await join('Anna', '🦊');
+const a = await join('Anna', 'kettle');
 await wait(100);
-const b = await join('Ben', '🦊'); // taken — server picks a free one
+const b = await join('Ben', 'kettle'); // taken — server picks a free one
 await wait(100);
 const c = await join('Cleo', 'not-an-avatar');
 await wait();
 
 // avatars
-assert(player('Anna')?.avatar === '🦊', 'Anna gets the avatar she asked for');
+assert(player('Anna')?.avatar === 'kettle', 'Anna gets the avatar she asked for');
 assert(
-  player('Ben')?.avatar && player('Ben').avatar !== '🦊',
+  player('Ben')?.avatar && player('Ben').avatar !== 'kettle',
   'a taken avatar is swapped for a free one'
 );
 assert(
   player('Cleo')?.avatar && player('Cleo').avatar !== player('Ben').avatar,
   'an invalid avatar gets a free one'
 );
-send(b, { type: 'avatar', avatar: '🦊' });
+send(b, { type: 'avatar', avatar: 'kettle' });
 await wait();
 assert(
   b.log.error?.message.includes('Anna'),
   "changing to someone else's avatar is rejected"
 );
-send(b, { type: 'avatar', avatar: '🐙' });
+send(b, { type: 'avatar', avatar: 'rubber-duck' });
 await wait();
-assert(player('Ben')?.avatar === '🐙', 'changing to a free avatar works');
+assert(player('Ben')?.avatar === 'rubber-duck', 'changing to a free avatar works');
 
 // host transfer
 send(b, { type: 'transferHost', playerId: player('Cleo').id });

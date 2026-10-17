@@ -2,6 +2,8 @@ import { useState } from 'react';
 
 import type { Player } from '@shared/party-types';
 
+import { PlayerToken } from '@/app/components/player-token';
+
 import { CardFace } from './card';
 import {
   distinctRanks,
@@ -120,7 +122,8 @@ export function GoFishPhone({
 
       {!isYourTurn && (
         <p className="mt-10 text-[var(--dock-text-muted)]">
-          Waiting for {player(view.currentPlayerId)?.avatar}{' '}
+          Waiting for{' '}
+          <PlayerToken avatar={player(view.currentPlayerId)?.avatar ?? ''} className="mr-[0.3em] inline-block h-[1.2em] w-[1.2em] align-[-0.25em]" />
           {nameOf(view.currentPlayerId)}…
         </p>
       )}
@@ -142,7 +145,8 @@ export function GoFishPhone({
                       : 'border-[var(--dock-border)] bg-[var(--dock-surface)]'
                   }`}
                 >
-                  {player(id)?.avatar} {nameOf(id)}
+                  <PlayerToken avatar={player(id)?.avatar ?? ''} className="mr-[0.3em] inline-block h-[1.2em] w-[1.2em] align-[-0.25em]" />
+                  {nameOf(id)}
                   <span className="ml-1 text-xs opacity-60">
                     ({view.handCounts[id] ?? 0})
                   </span>

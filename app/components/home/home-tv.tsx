@@ -1,21 +1,27 @@
 'use client';
 
-import { QRCodeSVG } from 'qrcode.react';
-import { useEffect, useState, type RefObject } from 'react';
+import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState, type RefObject } from 'react';
 
-import { ROOM_DOORS } from '@/games/rooms';
+import { ROOM_DOORS, type RoomDoor } from '@/games/rooms';
 import type { Player } from '@shared/party-types';
 
-// Home's own identity — a cozy cabin, distinct from any room's theme (see
-// AGENTS.md: rooms have their own permanent aesthetic, not the app itself).
-// The doors are decorative on the TV — the TV never takes input. The Ship
-// door's glow just signals "this room is active"; the actual portal
-// transition is driven by server state (see room/[code]/page.tsx), not a
-// click here.
+import { GuestRail } from './guest-rail';
+import { HomeField, type HomeFieldHandle, type WaveSource } from './home-field';
+import { HomeLogo } from './home-logo';
+import { PANES, windowMarkup, type Pane } from './home-windows';
+import { StyledQr } from './styled-qr';
+
+const STAGE_W = 1920, STAGE_H = 1080;
+
+// Home's own identity — the wood-panelled cabin from the Home TV design
+// review (see the design system: HomeWall, JoinCode, RoomWindow, GuestRail).
+// Laid out on a fixed 1920×1080 stage scaled to the screen, because the
+// target is a 65" TV at 1080p and every size was reviewed in those pixels.
 //
-// The fullscreen button is the one exception to "the TV never needs
-// interaction" — it's a one-time setup action before anyone's playing
-// (get the browser chrome out of the way), not something needed mid-game.
+// The TV never needs input; the fullscreen button is a one-time setup
+// action, and pointing at a window (a mouse near the TV) just sends a wave.
+// The portal transition into a game is driven by server state (see
+// room/[code]/page.tsx), not by anything here.
 function FullscreenButton() {
   const [isFullscreen, setIsFullscreen] = useState(false);
 
@@ -36,11 +42,23 @@ function FullscreenButton() {
   return (
     <button
       onClick={toggle}
-      className="absolute top-[clamp(0.5rem,2vh,1rem)] right-[clamp(0.5rem,2vw,1rem)] z-20 rounded-lg border border-[var(--home-border)] bg-[var(--home-surface)] px-3 py-1.5 text-xs text-[var(--home-text-muted)] transition hover:text-[var(--home-text)]"
+      className="fixed top-3 right-3 z-20 rounded-lg border border-[var(--home-border)] bg-[var(--home-surface)]/80 px-3 py-1.5 text-xs text-[var(--home-text-muted)] opacity-60 transition hover:text-[var(--home-text)] hover:opacity-100"
     >
-      {isFullscreen ? '⤡ Exit fullscreen' : '⛶ Fullscreen'}
+      {isFullscreen ? 'Exit fullscreen' : 'Fullscreen'}
     </button>
   );
+}
+
+// Scale that fits the 1920×1080 stage inside the viewport.
+function useStageScale() {
+  const [scale, setScale] = useState(1);
+  useLayoutEffect(() => {
+    const fit = () => setScale(Math.min(window.innerWidth / STAGE_W, window.innerHeight / STAGE_H));
+    fit();
+    window.addEventListener('resize', fit);
+    return () => window.removeEventListener('resize', fit);
+  }, []);
+  return scale;
 }
 
 export function HomeTv({
@@ -54,201 +72,158 @@ export function HomeTv({
   players: Player[];
   doorRefs: Partial<Record<string, RefObject<HTMLDivElement | null>>>;
 }) {
+  const scale = useStageScale();
+  const stage = useRef<HTMLDivElement>(null);
+  const field = useRef<HomeFieldHandle>(null);
+  const [breathing, setBreathing] = useState<Set<number>>(new Set());
+  const [hovered, setHovered] = useState<number | null>(null);
+
+  // Wave origins in stage pixels: each live window's centre, a little high.
+  const sources = useCallback((): WaveSource[] => {
+    const s = stage.current?.getBoundingClientRect();
+    if (!s) return [];
+    const k = s.width / STAGE_W;
+    return ROOM_DOORS.flatMap((d) => {
+      const r = doorRefs[d.gameId]?.current?.getBoundingClientRect();
+      return r ? [{ x: (r.left - s.left + r.width / 2) / k, y: (r.top - s.top + r.height * 0.45) / k, rgb: d.wave }] : [];
+    });
+  }, [doorRefs]);
+
+  const breathe = useCallback((i: number) => {
+    setBreathing((b) => new Set(b).add(i));
+    setTimeout(
+      () =>
+        setBreathing((b) => {
+          const next = new Set(b);
+          next.delete(i);
+          return next;
+        }),
+      1000,
+    );
+  }, []);
+
+  const word = code.replace(/\d+$/, '');
+  const num = code.slice(word.length);
+
   return (
-    <div className="relative flex h-full w-full flex-col items-center justify-between gap-[clamp(0.5rem,2vh,1.25rem)] bg-[var(--home-bg)] p-[clamp(0.75rem,2vw,2rem)] text-[var(--home-text)]">
+    <div className="relative h-full w-full overflow-hidden bg-[#15110d] select-none">
       <FullscreenButton />
-      {/* subtle wood-grain texture */}
       <div
-        className="pointer-events-none fixed inset-0 opacity-50"
-        style={{
-          backgroundImage:
-            'repeating-linear-gradient(100deg, rgba(0,0,0,0.12) 0px, rgba(0,0,0,0.12) 1px, transparent 1px, transparent 34px)',
-        }}
-      />
+        ref={stage}
+        className="absolute top-1/2 left-1/2 h-[1080px] w-[1920px] overflow-hidden bg-[#241e17] font-[family-name:var(--font-read)] text-[var(--home-text)]"
+        style={{ transform: `translate(-50%, -50%) scale(${scale})` }}
+      >
+        <div className="home-wall absolute inset-0" />
+        <svg className="absolute inset-0 h-[1080px] w-[1920px] opacity-80 mix-blend-overlay" aria-hidden="true">
+          <filter id="home-woodgrain" x="0" y="0" width="100%" height="100%">
+            <feTurbulence type="fractalNoise" baseFrequency="0.0022 0.11" numOctaves={4} seed={7} />
+            <feColorMatrix values="0 0 0 0 0.55  0 0 0 0 0.38  0 0 0 0 0.22  0 0 0 1.4 -0.45" />
+          </filter>
+          <rect width="1920" height="1080" filter="url(#home-woodgrain)" />
+        </svg>
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_760px_520px_at_260px_120px,rgba(240,151,60,0.14),transparent_70%)]" />
+        <div className="absolute inset-x-0 bottom-0 h-[26px] border-t-2 border-[rgba(255,220,170,0.08)] bg-[linear-gradient(#1a140f,#120e0a)]" />
+        <HomeField ref={field} sources={sources} onBreath={breathe} />
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_40%_45%,transparent_55%,rgba(0,0,0,0.5))]" />
 
-      <div className="relative flex w-full flex-1 flex-col items-center justify-evenly gap-[clamp(0.5rem,2vh,1rem)] [@media(max-height:700px)]:flex-row [@media(max-height:700px)]:items-center [@media(max-height:700px)]:justify-center [@media(max-height:700px)]:gap-[clamp(1rem,4vw,3rem)]">
-        {/* left: candles + garden window + welcome + join card */}
-        <div className="flex flex-col items-center gap-[clamp(0.5rem,2vh,1rem)]">
-          <div className="flex items-end gap-[clamp(0.75rem,2vw,1.25rem)]">
-            <Candle />
-            <CabinWindow />
-            <Candle />
+        <div className="absolute top-[54px] bottom-[54px] left-[96px] z-[1] w-[1144px]">
+          <div className="absolute top-0 left-0">
+            <HomeLogo />
           </div>
 
-          <div className="text-center">
-            <h1 className="font-serif text-[clamp(1.1rem,2.4vw,1.6rem)] font-bold tracking-wide">
-              Welcome Home
-            </h1>
-            <p className="mt-1 text-[clamp(0.7rem,1.3vw,0.85rem)] text-[var(--home-text-muted)]">
-              Everyone&apos;s waiting for you
-            </p>
+          <div className="absolute top-[236px] left-0 flex items-center gap-16">
+            <div className="h-[360px] w-[360px] shrink-0 overflow-hidden rounded-[26px] shadow-[0_24px_60px_rgba(0,0,0,0.5)]">
+              <StyledQr value={joinUrl} className="block h-full w-full" />
+            </div>
+            <div className="flex flex-col gap-3.5">
+              <span className="home-code text-[136px] leading-[0.9] font-bold tracking-[0.01em] whitespace-nowrap">
+                {word}
+                <span className="home-code-num ml-[0.06em]">{num}</span>
+              </span>
+              <span className="mt-[18px] flex flex-col gap-1">
+                <span className="text-[30px] text-[var(--home-text-muted)]">Scan the code, or go to</span>
+                <b className="text-[40px] font-bold tracking-[0.01em] whitespace-nowrap">
+                  gohomegames.com/join/
+                  <span className="text-[var(--home-code-mid)]">
+                    {word}
+                    <span className="text-[var(--home-code-top)]">{num}</span>
+                  </span>
+                </b>
+              </span>
+            </div>
           </div>
 
-          <JoinCard code={code} joinUrl={joinUrl} />
+          <div className="absolute bottom-0 -left-[76px] flex items-end gap-10">
+            {ROOM_DOORS.map((d, i) => (
+              <RoomWindow
+                key={d.gameId}
+                door={d}
+                pane={PANES[d.pane]}
+                ref={doorRefs[d.gameId]}
+                lit={hovered === i || breathing.has(i)}
+                onEnter={() => {
+                  setHovered(i);
+                  field.current?.sendWave(i);
+                }}
+                onLeave={() => setHovered((h) => (h === i ? null : h))}
+              />
+            ))}
+            <RoomWindow pane={PANES.building} label="In construction" />
+          </div>
         </div>
 
-        {/* right: doors */}
-        <div className="flex items-end gap-[clamp(1rem,3vw,2.25rem)]">
-          {ROOM_DOORS.map((d) => (
-            <Door key={d.gameId} ref={doorRefs[d.gameId]} label={d.label} magic />
-          ))}
-          <Door label="" locked />
-        </div>
-      </div>
-
-      <div className="relative flex flex-wrap justify-center gap-[clamp(0.4rem,1vw,0.6rem)]">
-        {players.length === 0 && (
-          <p className="text-[clamp(0.75rem,1.4vw,0.95rem)] text-[var(--home-text-muted)]">
-            Waiting for someone to arrive…
-          </p>
-        )}
-        {players.map((p) => (
-          <span
-            key={p.id}
-            className={`animate-arrive flex items-center gap-1.5 rounded-full border px-[clamp(0.6rem,1.5vw,1rem)] py-[clamp(0.2rem,0.6vh,0.35rem)] text-[clamp(0.7rem,1.3vw,0.9rem)] ${
-              p.isHost
-                ? 'border-[var(--home-magic)] text-[var(--home-magic)]'
-                : 'border-[var(--home-border)] bg-[var(--home-surface)]'
-            } ${p.connected ? '' : 'opacity-30'}`}
-          >
-            <span className="text-[1.3em] leading-none">{p.avatar}</span>
-            {p.name}
-            {p.isHost && ' · host'}
-          </span>
-        ))}
+        <aside className="absolute top-[54px] right-[96px] bottom-[54px] z-[1] w-[520px]">
+          <GuestRail players={players} />
+        </aside>
       </div>
     </div>
   );
 }
 
-function Candle() {
-  return (
-    <div className="flex flex-col items-center">
-      <div
-        className="animate-flame-flicker mb-[-3px] h-[clamp(12px,1.8vh,17px)] w-[clamp(8px,1.2vh,11px)] rounded-[50%_50%_50%_50%/65%_65%_35%_35%]"
-        style={{
-          background: 'radial-gradient(circle at 50% 30%, #fff3c4, #f0973c 55%, #b9491f 100%)',
-          boxShadow: '0 0 15px 4px rgba(240,151,60,0.5)',
-        }}
-      />
-      <div className="h-[clamp(20px,3vh,28px)] w-[clamp(6px,0.9vh,8px)] rounded-sm bg-gradient-to-b from-[#ede4cf] to-[#c9b98f]" />
-    </div>
-  );
-}
-
-function CabinWindow() {
-  return (
-    <div
-      className="relative h-[clamp(56px,9vh,84px)] w-[clamp(78px,13vh,118px)] overflow-hidden rounded-[50%_50%_8px_8px] border-[6px] border-[var(--home-border)] shadow-lg"
-    >
-      <div
-        className="absolute inset-0"
-        style={{
-          background:
-            'linear-gradient(180deg, #171335 0%, var(--home-night-sky) 55%, #14110c 100%)',
-        }}
-      />
-      <div
-        className="absolute top-[14%] right-[16%] h-[22%] w-[15%] rounded-full"
-        style={{
-          background: 'radial-gradient(circle, #f3efe0, #cfc9ad 70%)',
-          boxShadow: '0 0 14px 5px rgba(243,239,224,0.5)',
-        }}
-      />
-      <div className="absolute -bottom-[10%] -left-[10%] h-[45%] w-[50%] rounded-full bg-[var(--home-garden-deep)]" />
-      <div className="absolute -bottom-[10%] left-[22%] h-[36%] w-[40%] rounded-full bg-[var(--home-garden)] opacity-85" />
-      <div className="absolute -bottom-[10%] -right-[12%] h-[43%] w-[46%] rounded-full bg-[var(--home-garden-deep)]" />
-      <span className="animate-twinkle absolute top-[43%] left-[19%] h-[3px] w-[3px] rounded-full bg-[#e8f5a8] [box-shadow:0_0_6px_2px_rgba(232,245,168,0.8)]" />
-      <span className="animate-twinkle absolute top-[60%] left-[58%] h-[3px] w-[3px] rounded-full bg-[#e8f5a8] [animation-delay:0.8s] [box-shadow:0_0_6px_2px_rgba(232,245,168,0.8)]" />
-      <span className="animate-twinkle absolute top-[31%] left-[41%] h-[3px] w-[3px] rounded-full bg-[#e8f5a8] [animation-delay:1.6s] [box-shadow:0_0_6px_2px_rgba(232,245,168,0.8)]" />
-    </div>
-  );
-}
-
-function JoinCard({ code, joinUrl }: { code: string; joinUrl: string }) {
-  return (
-    <div className="flex w-[min(92vw,560px)] items-stretch rounded-2xl border border-[var(--home-border)] bg-[var(--home-surface)] p-[clamp(0.6rem,1.6vh,1rem)] px-[clamp(0.9rem,2vw,1.6rem)] shadow-lg">
-      <div className="flex flex-1 flex-col items-center justify-center gap-2 text-center">
-        <p className="text-[clamp(0.6rem,1vw,0.7rem)] tracking-widest text-[var(--home-text-muted)] uppercase">
-          Join at
-        </p>
-        <p className="text-[clamp(0.75rem,1.4vw,0.9rem)] text-[var(--home-text-muted)]">
-          gohomegames.com/join/
-          <span className="mt-1 block text-[clamp(1.1rem,2.2vw,1.5rem)] font-bold tracking-widest text-[var(--home-magic)]">
-            {code}
-          </span>
-        </p>
-      </div>
-      <div className="flex flex-col items-center gap-2 self-stretch px-[clamp(0.75rem,2vw,1.25rem)]">
-        <span className="w-px flex-1 bg-[var(--home-border)]" />
-        <span className="text-[0.6rem] tracking-widest text-[var(--home-text-muted)] uppercase">
-          or
-        </span>
-        <span className="w-px flex-1 bg-[var(--home-border)]" />
-      </div>
-      <div className="flex flex-1 flex-col items-center justify-center gap-2">
-        <p className="text-[clamp(0.6rem,1vw,0.7rem)] tracking-widest text-[var(--home-text-muted)] uppercase">
-          Scan
-        </p>
-        <div className="rounded-lg bg-white p-2">
-          <QRCodeSVG value={joinUrl} size={128} className="h-[clamp(72px,11vh,128px)] w-[clamp(72px,11vh,128px)]" />
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function Door({
+function RoomWindow({
+  door,
+  pane,
   label,
-  magic,
-  locked,
+  lit = false,
+  onEnter,
+  onLeave,
   ref,
 }: {
-  label: string;
-  magic?: boolean;
-  locked?: boolean;
+  door?: RoomDoor;
+  pane: Pane;
+  label?: string;
+  lit?: boolean;
+  onEnter?: () => void;
+  onLeave?: () => void;
   ref?: RefObject<HTMLDivElement | null>;
 }) {
+  const id = `win${useId().replace(/[^a-zA-Z0-9]/g, '')}`;
+  const live = !!door;
+  const title = door?.title;
   return (
-    <div className="flex flex-col items-center gap-[clamp(0.4rem,1.2vh,0.75rem)]">
-      <div
-        ref={ref}
-        className={`relative h-[clamp(96px,18vh,142px)] w-[clamp(62px,11vh,92px)] rounded-[8px_8px_4px_4px] border-[3px] border-[var(--home-border)] ${
-          locked ? 'opacity-60' : ''
-        }`}
+    <div
+      className={`flex w-[300px] shrink-0 flex-col items-center gap-[22px] ${live ? 'cursor-pointer' : ''} ${lit ? 'home-window-lit' : ''}`}
+      onMouseEnter={onEnter}
+      onMouseLeave={onLeave}
+    >
+      <div ref={ref} className="relative h-[260px] w-[176px]">
+        <svg
+          viewBox="0 0 176 260"
+          className={`absolute inset-0 overflow-visible ${live ? '' : 'opacity-60 grayscale brightness-90'}`}
+          aria-hidden="true"
+          dangerouslySetInnerHTML={{ __html: windowMarkup(pane, id) }}
+        />
+      </div>
+      <span
+        className={`flex h-11 items-center bg-clip-text text-[34px] font-bold tracking-[0.02em] whitespace-nowrap text-transparent ${live ? '' : 'opacity-70'}`}
         style={{
-          background: locked
-            ? 'repeating-linear-gradient(90deg, #26221b, #2c281f 4px, #26221b 8px)'
-            : 'repeating-linear-gradient(90deg, #332c22 0px, #3d3527 4px, #332c22 8px)',
+          backgroundImage: title
+            ? `linear-gradient(180deg, ${title[0]} 0%, ${title[1]} 50%, ${title[2]} 100%)`
+            : 'linear-gradient(180deg, #d9d0bf 0%, #a99d84 100%)',
         }}
       >
-        <span className="absolute top-[52%] right-[10px] h-2 w-2 rounded-full bg-[#8a7a5a] [box-shadow:0_1px_0_rgba(255,255,255,0.2)_inset]" />
-        {magic && (
-          <>
-            <span
-              className="animate-portal-pulse pointer-events-none absolute -bottom-1.5 left-[10%] h-2.5 w-[80%] blur-[5px]"
-              style={{
-                background:
-                  'radial-gradient(ellipse at center, var(--home-magic-glow), transparent 70%)',
-              }}
-            />
-            <span
-              className="animate-portal-pulse pointer-events-none absolute -inset-1 rounded-[inherit]"
-              style={{ boxShadow: '0 0 20px 2px rgba(185,166,245,0.35)' }}
-            />
-            <span className="animate-spark-float absolute top-[30%] -left-1.5 h-1 w-1 rounded-full bg-[#e6defb] [box-shadow:0_0_8px_3px_rgba(230,222,251,0.85)]" />
-            <span className="animate-spark-float absolute top-[55%] -right-2 h-1 w-1 rounded-full bg-[#e6defb] [animation-delay:1s] [box-shadow:0_0_8px_3px_rgba(230,222,251,0.85)]" />
-            <span className="animate-spark-float absolute -top-2 left-[20%] h-1 w-1 rounded-full bg-[#e6defb] [animation-delay:2s] [box-shadow:0_0_8px_3px_rgba(230,222,251,0.85)]" />
-          </>
-        )}
-      </div>
-      {locked ? (
-        <span className="text-[clamp(0.9rem,1.6vw,1.1rem)]">🔒</span>
-      ) : (
-        <p className="font-serif text-[clamp(0.7rem,1.2vw,0.9rem)] font-bold tracking-widest text-[var(--home-magic)] uppercase">
-          {label}
-        </p>
-      )}
+        {door?.label ?? label}
+      </span>
     </div>
   );
 }

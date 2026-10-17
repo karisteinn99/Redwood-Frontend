@@ -4,7 +4,8 @@ import { use, useEffect, useState } from 'react';
 
 import { normalizeRoomCode } from '@/lib/room-code';
 import { usePartyRoom } from '@/lib/use-party-room';
-import { AVATARS, isAvatar } from '@shared/avatars';
+import { AVATARS, AVATAR_NAMES, isAvatar } from '@shared/avatars';
+import { PlayerToken } from '@/app/components/player-token';
 import type { HelloMessage, Player } from '@shared/party-types';
 import { GAME_UI } from '@/games/ui';
 
@@ -50,7 +51,7 @@ function AvatarPicker({
   onPick: (avatar: string) => void;
 }) {
   return (
-    <div className="grid w-full max-w-xs grid-cols-6 gap-2">
+    <div className="grid w-full max-w-xs grid-cols-4 gap-2">
       {AVATARS.map((a) => {
         const isTaken = taken.includes(a) && a !== value;
         return (
@@ -58,14 +59,14 @@ function AvatarPicker({
             key={a}
             onClick={() => onPick(a)}
             disabled={isTaken}
-            aria-label={`Play as ${a}`}
-            className={`flex aspect-square items-center justify-center rounded-xl border text-2xl transition disabled:opacity-20 ${
+            aria-label={`Play as ${AVATAR_NAMES[a]}`}
+            className={`flex aspect-square items-center justify-center rounded-xl border p-2 transition disabled:opacity-20 ${
               a === value
                 ? 'border-[var(--home-magic)] bg-[var(--home-surface)] [box-shadow:0_0_12px_var(--home-magic-glow)]'
                 : 'border-[var(--home-border)]'
             }`}
           >
-            {a}
+            <PlayerToken avatar={a} className="h-full w-full" />
           </button>
         );
       })}
@@ -100,8 +101,8 @@ function GuestList({
             key={p.id}
             className="flex items-center gap-2 rounded-xl border border-[var(--home-border)] bg-[var(--home-surface)] px-3 py-2"
           >
-            <span className={`text-2xl ${p.connected ? '' : 'opacity-40'}`}>
-              {p.avatar}
+            <span className={p.connected ? '' : 'opacity-40'}>
+              <PlayerToken avatar={p.avatar} host={p.isHost} className="h-9 w-9" />
             </span>
             <span className="flex-1 truncate">
               {p.name}
@@ -291,7 +292,7 @@ export default function JoinPage({
           <div className="flex flex-col items-center text-center">
             {/* games bring their own full-bleed backdrop; this screen isn't a game */}
             <div className="fixed inset-0 -z-10 bg-gray-900" />
-            <p className="text-5xl">{me.avatar}</p>
+            <PlayerToken avatar={me.avatar} className="h-20 w-20" />
             <p className="mt-4 text-2xl font-bold">
               You&apos;re in, {me.name}!
             </p>
@@ -342,9 +343,9 @@ export default function JoinPage({
       <button
         onClick={() => setPickingAvatar((v) => !v)}
         aria-label="Change character"
-        className="animate-arrive text-6xl"
+        className="animate-arrive"
       >
-        {me.avatar}
+        <PlayerToken avatar={me.avatar} host={me.isHost} className="h-24 w-24" />
       </button>
       <p className="mt-2 font-serif text-4xl font-bold">{me.name}</p>
       <p className="mt-2 text-[var(--home-text-muted)]">

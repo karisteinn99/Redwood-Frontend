@@ -3,12 +3,13 @@
 import { QRCodeSVG } from 'qrcode.react';
 import { useEffect, useRef, useState } from 'react';
 
+import { PlayerToken } from '@/app/components/player-token';
 import type { Player } from '@shared/party-types';
 
-// Layers Home draws on top of whatever the TV is showing — Home or a room —
-// since arrivals and late joins happen in both. Both are cosmetic, client-
-// side only; the server just reports who's seated and whether the host
-// asked for the join code.
+// Layers drawn on top of a game room's TV screen, for arrivals and late
+// joins mid-game (at Home, the guest rail shows arrivals itself). Both are
+// cosmetic, client-side only; the server just reports who's seated and
+// whether the host asked for the join code.
 
 const ARRIVAL_MS = 3200;
 
@@ -60,7 +61,7 @@ export function ArrivalToasts({ players }: { players: Player[] | undefined }) {
           className="animate-arrival-toast flex items-center gap-3 rounded-full border border-[var(--home-border)] bg-[var(--home-surface)] px-6 py-2.5 font-serif text-[clamp(1rem,2.2vw,1.6rem)] text-[var(--home-text)] shadow-2xl"
           style={{ animationDuration: `${ARRIVAL_MS}ms` }}
         >
-          <span className="text-[1.4em]">{a.avatar}</span>
+          <PlayerToken avatar={a.avatar} className="h-[1.6em] w-[1.6em]" />
           <span>
             <span className="font-bold text-[var(--home-magic)]">{a.name}</span>{' '}
             is home

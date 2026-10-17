@@ -1,5 +1,7 @@
 import type { Player } from '@shared/party-types';
 
+import { PlayerToken } from '@/app/components/player-token';
+
 import { CardBack, CardFace, FannedBacks } from './card';
 import type { GoFishEvent, GoFishPublicView } from './definition';
 import { DockScenery } from './dock-scenery';
@@ -59,8 +61,10 @@ export function GoFishTv({
         <p className="text-sm tracking-widest text-[var(--dock-text-muted)] uppercase">
           Go Fish · the Dock
         </p>
-        <p className="mt-6 text-[clamp(2.5rem,6vw,4.5rem)]">
-          {view.winnerIds.map((id) => player(id)?.avatar).join(' ')}
+        <p className="mt-6 flex gap-4">
+          {view.winnerIds.map((id) => (
+            <PlayerToken key={id} avatar={player(id)?.avatar ?? ''} className="h-[clamp(4rem,10vh,7rem)] w-[clamp(4rem,10vh,7rem)]" />
+          ))}
         </p>
         <p
           className="mt-2 text-[clamp(2rem,4.5vw,3.5rem)] font-bold text-[var(--dock-sun)]"
@@ -73,7 +77,8 @@ export function GoFishTv({
           {view.order.map((id) => (
             <li key={id} className="flex flex-col items-center gap-2">
               <span className="text-lg">
-                {player(id)?.avatar} {nameOf(id)} ·{' '}
+                <PlayerToken avatar={player(id)?.avatar ?? ''} className="mr-[0.3em] inline-block h-[1.2em] w-[1.2em] align-[-0.25em]" />
+                {nameOf(id)} ·{' '}
                 {view.books[id]?.length ?? 0}
               </span>
               <Books books={view.books[id] ?? []} />
@@ -111,7 +116,7 @@ export function GoFishTv({
               }}
             >
               <p className="text-[clamp(1rem,1.8vw,1.3rem)] font-medium">
-                <span className="mr-1.5">{player(id)?.avatar}</span>
+                <PlayerToken avatar={player(id)?.avatar ?? ''} className="mr-[0.3em] inline-block h-[1.2em] w-[1.2em] align-[-0.25em]" />
                 {nameOf(id)}
               </p>
               <FannedBacks count={view.handCounts[id] ?? 0} />
@@ -145,7 +150,8 @@ export function GoFishTv({
 
       <p className="text-[clamp(1rem,2vw,1.4rem)]">
         <span className="text-[var(--dock-coral)]">
-          {player(view.currentPlayerId)?.avatar} {nameOf(view.currentPlayerId)}
+          <PlayerToken avatar={player(view.currentPlayerId)?.avatar ?? ''} className="mr-[0.3em] inline-block h-[1.2em] w-[1.2em] align-[-0.25em]" />
+          {nameOf(view.currentPlayerId)}
         </span>
         &apos;s turn
       </p>

@@ -81,7 +81,7 @@ export default function TvPage({ params }: { params: Promise<{ code: string }> }
   return (
     <>
       {renderScreen()}
-      <ArrivalToasts players={state?.players} />
+      {state?.phase === 'playing' && <ArrivalToasts players={state.players} />}
       {state?.phase === 'playing' && state.joinOverlay && <LateJoinOverlay code={code} joinUrl={joinUrl} />}
     </>
   );
