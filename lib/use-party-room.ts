@@ -29,6 +29,7 @@ export function usePartyRoom(code: string, hello: HelloMessage | null) {
   const [gameView, setGameView] = useState<GameView | null>(null);
   const [lastError, setLastError] = useState<string | null>(null);
   const [connected, setConnected] = useState(false);
+  const [kicked, setKicked] = useState(false);
   const socketRef = useRef<PartySocket | null>(null);
   const helloRef = useRef(hello);
   const active = hello !== null;
@@ -40,6 +41,7 @@ export function usePartyRoom(code: string, hello: HelloMessage | null) {
   useEffect(() => {
     if (!active) return;
 
+    setKicked(false);
     const socket = new PartySocket({ host: partyHost(), room: code });
     socketRef.current = socket;
 
@@ -51,12 +53,23 @@ export function usePartyRoom(code: string, hello: HelloMessage | null) {
     socket.addEventListener('message', (event) => {
       const msg = JSON.parse(event.data) as ServerMessage;
       if (msg.type === 'state') {
-        setState({ phase: msg.phase, players: msg.players, gameId: msg.gameId, games: msg.games });
+        setState({
+          phase: msg.phase,
+          players: msg.players,
+          gameId: msg.gameId,
+          gamePlayerIds: msg.gamePlayerIds ?? null,
+          joinOverlay: msg.joinOverlay ?? false,
+          games: msg.games,
+        });
         if (msg.phase === 'lobby') setGameView(null);
       }
       if (msg.type === 'you') setYou({ playerId: msg.playerId, token: msg.token });
       if (msg.type === 'view') setGameView({ gameId: msg.gameId, view: msg.view, finished: msg.finished });
       if (msg.type === 'error') setLastError(msg.message);
+      if (msg.type === 'kicked') {
+        setKicked(true);
+        socket.close(); // a deliberate close stops partysocket's auto-reconnect
+      }
     });
 
     return () => socket.close();
@@ -67,5 +80,5 @@ export function usePartyRoom(code: string, hello: HelloMessage | null) {
     socketRef.current?.send(JSON.stringify(msg));
   }, []);
 
-  return { state, you, gameView, lastError, connected, send };
+  return { state, you, gameView, lastError, connected, kicked, send };
 }

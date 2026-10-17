@@ -2,7 +2,17 @@
 
 Second real game, built to prove the `GameDefinition` interface generalizes beyond Liar's Dice: no elimination (nobody's ever removed from `order`), no bluffing/reveal-pause mechanic (nothing to referee — an ask's outcome is unambiguous and instant), a different shape of hidden information. Replaces the previously-decorative "Lounge" door slot on Home.
 
-**Visual identity:** deliberately generic dark theme for now (`bg-gray-900`, `blue-600` accents) — no dedicated room aesthetic yet. Same precedent Liar's Dice followed: ship functional first, reskin later as separate work.
+**Visual identity:** shipped functional first in the generic dark theme (same precedent Liar's Dice followed), now reskinned as its own room — **the Dock**. See "Visual identity: the Dock" below.
+
+## Visual identity: the Dock
+- A lake at sunset: indigo→plum→coral sky, a dark far shore, deep lake-blue water with drifting ripples, a bobber, the end of a wooden dock along the bottom edge. Chosen to sit clearly apart from the Ship (cold teal night at sea) while still being "water" for a fishing game. Design note in `.planning/sketches/the-dock/`.
+- Tokens in `app/globals.css` (`--dock-*`), same pattern as `--home-*`/`--ship-*`. Coral (`--dock-coral`) is the "your turn / active / primary button" accent; sun-gold (`--dock-sun`) is reserved for the winner line — the same split the Ship uses between teal and lantern-amber.
+- `games/go-fish/dock-scenery.tsx`: `DockScenery` (TV, full scenery) and `DockBackdrop` (phone, colors only — no scenery competing with a hand of cards on a small screen).
+- `games/go-fish/card.tsx`: cream `CardFace` (rank + fish pip, aces/face cards in red purely for variety — suits still aren't modeled) and wave-patterned `CardBack`; `FannedBacks` shows a hand count as overlapping backs, squeezed tighter as it grows.
+- TV: each seat is a panel (avatar, name, fanned backs, books as mini cards) with a coral glow on the current player; the stock is "the pond"; the commentary line re-splashes on every new event (keyed off stock/hand counts/event, since state carries no event id — cosmetic only).
+- Phone: the hand doubles as the rank picker — tap a card to choose that rank (replaces the separate rank buttons); targets are avatar chips showing their hand count; the Ask button spells out the ask ("Ask Ben for 5s").
+- Tutorial restyled to the Dock tokens, content unchanged.
+- Verified in a real browser (Playwright, TV 1280×720 + 390×844 phones): TV in-game, phone on-turn/off-turn, late-join overlay on top of it. `go-fish-smoke.mjs` unaffected (purely visual change, protocol untouched).
 
 ## Rules locked in
 - Standard 52-card deck; only rank (1–13) matters, suits are never modeled.
@@ -47,7 +57,7 @@ Every exit path runs a `resolveTurn` pass (the empty-hand free-draw-or-skip logi
 - **Phone**: everything the TV shows, plus your own hand grouped by rank. On your turn: pick a target (any other player — targeting someone with 0 cards is legal, just guaranteed to "fish", since you can't know their hand for certain beyond the public count) and a rank restricted to `distinctRanks(yourHand)`, then Ask. Off-turn: "Waiting for {name}…".
 
 ## Tutorial
-- Same modal shell as Liar's Dice's (`fixed inset-0`, click-outside-to-close, ✕ button), generic dark theme.
+- Same modal shell as Liar's Dice's (`fixed inset-0`, click-outside-to-close, ✕ button), Dock colors.
 - Prose-only for v1 (no worked example) — five short sections: hand is secret, ask for a rank you hold, hit-or-fish, books of four, most books wins.
 
 ## Files

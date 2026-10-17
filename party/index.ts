@@ -17,6 +17,7 @@ import type {
 } from '@cloudflare/workers-types';
 
 import { GAMES, gameInfos } from '../games';
+import { AVATARS, AVATAR_NAMES, isAvatar } from '../shared/avatars';
 import type { GameContext, Viewer } from '../shared/game';
 import type {
   ClientMessage,
@@ -36,6 +37,9 @@ interface Env {
   // so there's no need for HomeRoom to carry the Rpc.DurableObjectBranded
   // marker that a parametrized DurableObjectNamespace<HomeRoom> requires.
   HOME_ROOM: DurableObjectNamespace;
+  // Optional override (e.g. `wrangler dev --var PRUNE_GRACE_MS:2000` for the
+  // smoke test); defaults to DEFAULT_PRUNE_GRACE_MS.
+  PRUNE_GRACE_MS?: string;
 }
 
 // Persisted per seat. Connection liveness is tracked separately, at
@@ -47,11 +51,20 @@ interface Seat {
   name: string;
   token: string;
   joinedAt: number;
+  avatar: string;
+  // Persisted (unlike liveness itself) so the prune alarm, which wakes the
+  // object from scratch, still knows how long a seat has been gone.
+  disconnectedAt?: number;
 }
 
 type Role = { role: 'tv' } | { role: 'player'; seatId: string };
 
 const SNAPSHOT_KEY = 'snapshot';
+
+// How long a seat may stay disconnected in the lobby before it's removed.
+// Long enough to ride out a locked phone or a tab refresh; short enough that
+// people who actually left stop cluttering the guest list.
+const DEFAULT_PRUNE_GRACE_MS = 3 * 60 * 1000;
 
 // Bump this whenever a game's state shape changes in a way that could break
 // an already-persisted gameState (e.g. a new required field). A stored
@@ -65,8 +78,11 @@ interface Snapshot {
   phase: Phase;
   seats: Seat[];
   hostId: string | null;
+  preferredHostId?: string | null;
   gameId: string | null;
   gameState: unknown;
+  gamePlayerIds?: string[] | null;
+  joinOverlay?: boolean;
 }
 
 export class HomeRoom {
@@ -74,12 +90,19 @@ export class HomeRoom {
   private seats = new Map<string, Seat>();
   private liveSockets = new Map<string, PartyWebSocket>(); // seatId -> its live socket
   private hostId: string | null = null;
+  // Set by an explicit host transfer: this seat outranks join order for as
+  // long as it's connected (see ensureHost).
+  private preferredHostId: string | null = null;
   private gameId: string | null = null;
+  private gamePlayerIds: string[] | null = null;
+  private joinOverlay = false;
+  private pruneGraceMs: number;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private gameState: any = null;
   private ready: Promise<void>;
 
-  constructor(private ctx: DurableObjectState) {
+  constructor(private ctx: DurableObjectState, env: Env) {
+    this.pruneGraceMs = Number(env.PRUNE_GRACE_MS) || DEFAULT_PRUNE_GRACE_MS;
     // Rebuild state after a hibernated room wakes up. blockConcurrencyWhile
     // means no request is handled until this finishes — the equivalent of
     // PartyKit's onStart running before onConnect/onRequest.
@@ -87,11 +110,19 @@ export class HomeRoom {
       const snapshot = await this.ctx.storage.get<Snapshot>(SNAPSHOT_KEY);
       if (snapshot) {
         this.hostId = snapshot.hostId;
-        this.seats = new Map(snapshot.seats.map((s) => [s.id, s]));
+        this.preferredHostId = snapshot.preferredHostId ?? null;
+        // Seats persisted before avatars existed, or with an old emoji
+        // character, get a free token on load.
+        this.seats = new Map();
+        for (const s of snapshot.seats) {
+          this.seats.set(s.id, { ...s, avatar: isAvatar(s.avatar) ? s.avatar : this.pickAvatar(undefined) });
+        }
         if (snapshot.gameStateVersion === GAME_STATE_VERSION) {
           this.phase = snapshot.phase;
           this.gameId = snapshot.gameId;
           this.gameState = snapshot.gameState;
+          this.gamePlayerIds = snapshot.gamePlayerIds ?? null;
+          this.joinOverlay = snapshot.joinOverlay ?? false;
         } // else: stale shape — back to lobby, seats kept
       }
 
@@ -108,7 +139,13 @@ export class HomeRoom {
         const role = ws.deserializeAttachment() as Role | null;
         if (role?.role === 'player') this.liveSockets.set(role.seatId, ws);
       }
+      const now = Date.now();
+      for (const seat of this.seats.values()) {
+        if (this.liveSockets.has(seat.id)) delete seat.disconnectedAt;
+        else seat.disconnectedAt ??= now;
+      }
       this.ensureHost();
+      await this.schedulePrune();
     });
   }
 
@@ -128,8 +165,10 @@ export class HomeRoom {
     // Plain HTTP GET: lets a client check "is this room code already
     // taken?" before committing to it. `seats` persists (see the
     // constructor above), so this is true even for a since-abandoned room
-    // — the code stays retired.
-    return new Response(JSON.stringify({ occupied: this.seats.size > 0 }), {
+    // — the code stays retired. A connected TV counts too, so a room whose
+    // TV is up but nobody has joined yet isn't handed out twice.
+    const occupied = this.seats.size > 0 || this.ctx.getWebSockets().length > 0;
+    return new Response(JSON.stringify({ occupied }), {
       headers: { 'content-type': 'application/json', 'access-control-allow-origin': '*' },
     });
   }
@@ -150,16 +189,21 @@ export class HomeRoom {
         this.sendView(ws, { kind: 'tv' });
         return;
       }
-      this.seatPlayer(ws, msg.name, msg.token);
+      this.seatPlayer(ws, msg.name, msg.token, msg.avatar);
       return;
     }
 
     const seat = this.seatOf(ws);
     if (!seat) return;
 
-    // start/home are host-only; any seated player can send a game action.
+    // Any seated player can send a game action or change their own avatar;
+    // everything else is host-only.
     if (msg.type === 'action') {
       this.handleAction(ws, seat.id, msg.action);
+      return;
+    }
+    if (msg.type === 'avatar') {
+      this.setAvatar(ws, seat, msg.avatar);
       return;
     }
     if (seat.id !== this.hostId) return;
@@ -172,10 +216,49 @@ export class HomeRoom {
       this.phase = 'lobby';
       this.gameId = null;
       this.gameState = null;
+      this.gamePlayerIds = null;
+      this.joinOverlay = false;
+      this.broadcastState();
+      this.persist();
+      await this.schedulePrune(); // seats that dropped mid-game are prunable again
+      return;
+    }
+    if (msg.type === 'kick') {
+      this.kick(ws, seat, msg.playerId);
+      return;
+    }
+    if (msg.type === 'transferHost') {
+      this.transferHost(ws, seat, msg.playerId);
+      return;
+    }
+    if (msg.type === 'joinOverlay') {
+      this.joinOverlay = this.phase === 'playing' && msg.open === true;
       this.broadcastState();
       this.persist();
       return;
     }
+  }
+
+  // Durable Object alarm: removes lobby seats that have been disconnected
+  // longer than the grace period. Never runs mid-game — those seats are
+  // part of the game state and keep their place until everyone's home.
+  async alarm() {
+    await this.ready;
+    if (this.phase !== 'lobby') return;
+    const cutoff = Date.now() - this.pruneGraceMs;
+    let pruned = false;
+    for (const seat of [...this.seats.values()]) {
+      if (this.liveSockets.has(seat.id) || seat.disconnectedAt === undefined) continue;
+      if (seat.disconnectedAt > cutoff) continue;
+      this.removeSeat(seat.id);
+      pruned = true;
+    }
+    if (pruned) {
+      this.ensureHost();
+      this.broadcastState();
+      this.persist();
+    }
+    await this.schedulePrune();
   }
 
   async webSocketClose(ws: PartyWebSocket) {
@@ -188,17 +271,103 @@ export class HomeRoom {
 
   private handleDisconnect(ws: PartyWebSocket) {
     const seat = this.seatOf(ws);
-    if (seat && this.liveSockets.get(seat.id) === ws) this.liveSockets.delete(seat.id);
+    if (seat && this.liveSockets.get(seat.id) === ws) {
+      this.liveSockets.delete(seat.id);
+      seat.disconnectedAt = Date.now();
+    }
+    this.ensureHost();
+    this.broadcastState();
+    this.persist();
+    void this.schedulePrune();
+  }
+
+  private async schedulePrune() {
+    if (this.phase !== 'lobby') return;
+    const oldest = Math.min(
+      ...[...this.seats.values()]
+        .filter((s) => !this.liveSockets.has(s.id) && s.disconnectedAt !== undefined)
+        .map((s) => s.disconnectedAt!),
+    );
+    if (!Number.isFinite(oldest)) return;
+    await this.ctx.storage.setAlarm(oldest + this.pruneGraceMs);
+  }
+
+  private removeSeat(seatId: string) {
+    this.seats.delete(seatId);
+    this.liveSockets.delete(seatId);
+    if (this.preferredHostId === seatId) this.preferredHostId = null;
+  }
+
+  private kick(sender: PartyWebSocket, host: Seat, targetId: string) {
+    const target = this.seats.get(targetId);
+    if (!target) return this.fail(sender, 'That player has already left');
+    if (target.id === host.id) return this.fail(sender, "You can't remove yourself");
+    // Mid-game the seat is part of the game's own state (turn order, hands);
+    // pulling it out from under the game isn't something every game handles.
+    if (this.phase !== 'lobby') return this.fail(sender, 'Players can only be removed at Home, between games');
+
+    const socket = this.liveSockets.get(target.id);
+    this.removeSeat(target.id);
+    if (socket) {
+      socket.serializeAttachment(null);
+      this.safeSend(socket, JSON.stringify({ type: 'kicked' } satisfies ServerMessage));
+      try {
+        socket.close(4000, 'Removed by the host');
+      } catch {
+        // already closing
+      }
+    }
     this.ensureHost();
     this.broadcastState();
     this.persist();
   }
 
+  private transferHost(sender: PartyWebSocket, host: Seat, targetId: string) {
+    const target = this.seats.get(targetId);
+    if (!target || target.id === host.id) return this.fail(sender, 'Pick another player');
+    if (!this.liveSockets.has(target.id)) return this.fail(sender, `${target.name} isn't connected right now`);
+    this.preferredHostId = target.id;
+    this.ensureHost();
+    this.broadcastState();
+    this.persist();
+  }
+
+  private setAvatar(sender: PartyWebSocket, seat: Seat, avatar: string) {
+    if (!isAvatar(avatar)) return this.fail(sender, 'Unknown character');
+    const owner = [...this.seats.values()].find((s) => s.avatar === avatar && s.id !== seat.id);
+    if (owner) return this.fail(sender, `${owner.name} is already ${AVATAR_NAMES[avatar]}`);
+    seat.avatar = avatar;
+    this.broadcastState();
+    this.persist();
+  }
+
+  // A requested avatar if it's valid and free, else the first free one. With
+  // more seats than characters, duplicates are allowed rather than refusing
+  // the join.
+  private pickAvatar(requested: unknown, excludeSeatId?: string): string {
+    const taken = new Set(
+      [...this.seats.values()].filter((s) => s.id !== excludeSeatId).map((s) => s.avatar),
+    );
+    if (isAvatar(requested) && !taken.has(requested)) return requested;
+    return AVATARS.find((a) => !taken.has(a)) ?? (isAvatar(requested) ? requested : AVATARS[0]);
+  }
+
+  private fail(ws: PartyWebSocket, message: string) {
+    this.safeSend(ws, JSON.stringify({ type: 'error', message } satisfies ServerMessage));
+  }
+
+  // A socket that's mid-close can still be listed by getWebSockets(); a
+  // send to it throws, and one bad socket mustn't abort a broadcast.
+  private safeSend(ws: PartyWebSocket, msg: string) {
+    try {
+      ws.send(msg);
+    } catch {
+      // closed or closing
+    }
+  }
+
   private startGame(sender: PartyWebSocket, gameId: string) {
-    const fail = (message: string) => {
-      const out: ServerMessage = { type: 'error', message };
-      sender.send(JSON.stringify(out));
-    };
+    const fail = (message: string) => this.fail(sender, message);
 
     if (this.phase !== 'lobby') return fail('A game is already in progress');
     const def = GAMES[gameId];
@@ -211,6 +380,8 @@ export class HomeRoom {
 
     this.gameId = gameId;
     this.gameState = def.init(players, this.gameCtx());
+    this.gamePlayerIds = players.map((p) => p.id);
+    this.joinOverlay = false;
     this.phase = 'playing';
     this.broadcastState();
     this.broadcastViews();
@@ -223,11 +394,7 @@ export class HomeRoom {
     if (!def) return;
 
     const result = def.reduce(this.gameState, action, playerId, this.gameCtx());
-    if ('error' in result) {
-      const out: ServerMessage = { type: 'error', message: result.error };
-      sender.send(JSON.stringify(out));
-      return;
-    }
+    if ('error' in result) return this.fail(sender, result.error);
     this.gameState = result.state;
     this.broadcastViews();
     this.persist();
@@ -249,7 +416,7 @@ export class HomeRoom {
       view: def.viewFor(this.gameState, viewer),
       finished: def.isFinished(this.gameState),
     };
-    ws.send(JSON.stringify(out));
+    this.safeSend(ws, JSON.stringify(out));
   }
 
   private broadcastViews() {
@@ -274,7 +441,7 @@ export class HomeRoom {
     return `${base} ${n}`;
   }
 
-  private seatPlayer(ws: PartyWebSocket, name: string, token?: string) {
+  private seatPlayer(ws: PartyWebSocket, name: string, token?: string, avatar?: string) {
     const cleanName = String(name ?? '').trim().slice(0, 20);
     if (!cleanName) return;
 
@@ -283,15 +450,19 @@ export class HomeRoom {
       : undefined;
     if (seat) {
       seat.name = this.uniqueName(cleanName, seat.id);
+      if (avatar !== undefined && avatar !== seat.avatar) seat.avatar = this.pickAvatar(avatar, seat.id);
     } else {
       seat = {
         id: crypto.randomUUID(),
         name: this.uniqueName(cleanName),
         token: crypto.randomUUID(),
         joinedAt: Date.now(),
+        avatar: this.pickAvatar(avatar),
       };
       this.seats.set(seat.id, seat);
+      this.joinOverlay = false; // they're in — the TV can drop the QR again
     }
+    delete seat.disconnectedAt;
     this.liveSockets.set(seat.id, ws);
     ws.serializeAttachment({ role: 'player', seatId: seat.id } satisfies Role);
     this.ensureHost();
@@ -316,13 +487,20 @@ export class HomeRoom {
   // re-evaluated on every join/disconnect, not just assigned once. If the
   // original host's connection drops, host moves to the next-earliest
   // connected player; the moment the original host reconnects, they get it
-  // back. If nobody's connected, hostId is left as-is (remembered for
-  // whoever reconnects first).
+  // back. An explicit transfer (`preferredHostId`) jumps the queue the same
+  // way: that seat holds host whenever it's connected. If nobody's
+  // connected, hostId is left as-is (remembered for whoever reconnects
+  // first) — unless that seat was just removed.
   private ensureHost() {
+    if (this.preferredHostId && this.liveSockets.has(this.preferredHostId)) {
+      this.hostId = this.preferredHostId;
+      return;
+    }
     const next = [...this.seats.values()]
       .filter((s) => this.liveSockets.has(s.id))
       .sort((a, b) => a.joinedAt - b.joinedAt)[0];
     if (next) this.hostId = next.id;
+    else if (this.hostId && !this.seats.has(this.hostId)) this.hostId = null;
   }
 
   private players(): Player[] {
@@ -331,6 +509,7 @@ export class HomeRoom {
       .map((s) => ({
         id: s.id,
         name: s.name,
+        avatar: s.avatar,
         isHost: s.id === this.hostId,
         connected: this.liveSockets.has(s.id),
       }));
@@ -342,6 +521,8 @@ export class HomeRoom {
       phase: this.phase,
       players: this.players(),
       gameId: this.gameId,
+      gamePlayerIds: this.gamePlayerIds,
+      joinOverlay: this.joinOverlay,
       games: gameInfos(),
     } satisfies { type: 'state' } & RoomState;
     return JSON.stringify(out);
@@ -349,7 +530,7 @@ export class HomeRoom {
 
   private broadcastState() {
     const msg = this.stateMessage();
-    for (const ws of this.ctx.getWebSockets()) ws.send(msg);
+    for (const ws of this.ctx.getWebSockets()) this.safeSend(ws, msg);
   }
 
   private persist() {
@@ -358,8 +539,11 @@ export class HomeRoom {
       phase: this.phase,
       seats: [...this.seats.values()],
       hostId: this.hostId,
+      preferredHostId: this.preferredHostId,
       gameId: this.gameId,
       gameState: this.gameState,
+      gamePlayerIds: this.gamePlayerIds,
+      joinOverlay: this.joinOverlay,
     };
     // Fire-and-forget: state is rebuilt from the latest write in the
     // constructor, so an occasional dropped write just costs the room's

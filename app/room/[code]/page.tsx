@@ -8,6 +8,7 @@ import type { HelloMessage } from '@shared/party-types';
 import { GAME_UI } from '@/games/ui';
 import { ROOM_DOORS } from '@/games/rooms';
 import { HomeTv } from '@/app/components/home/home-tv';
+import { ArrivalToasts, LateJoinOverlay } from '@/app/components/home/home-overlays';
 
 const TV_HELLO: HelloMessage = { type: 'hello', role: 'tv' };
 
@@ -77,41 +78,54 @@ export default function TvPage({ params }: { params: Promise<{ code: string }> }
   const joinUrl = `${origin}/join/${code}`;
   const players = state?.players ?? [];
 
-  // Mid-transition: Home stays as the base layer, the game grows into view
-  // from the door through an expanding clip-path.
-  if (portal) {
-    const Tv = state?.gameId ? GAME_UI[state.gameId]?.Tv : undefined;
-    return (
-      <div className="relative h-screen w-screen overflow-hidden">
-        <HomeTv code={code} joinUrl={joinUrl} players={players} doorRefs={doorRefs} />
-        <div
-          className="absolute inset-0 text-white transition-[clip-path] duration-[1150ms] ease-[cubic-bezier(0.22,0.7,0.2,1)]"
-          style={{ clipPath: `circle(${portalOpen ? '150%' : '0px'} at ${portal.x}px ${portal.y}px)` }}
-        >
-          <div className="flex h-full items-center justify-center">
-            {Tv && gameView && <Tv view={gameView.view} players={players} />}
+  return (
+    <>
+      {renderScreen()}
+      {state?.phase === 'playing' && <ArrivalToasts players={state.players} />}
+      {state?.phase === 'playing' && state.joinOverlay && <LateJoinOverlay code={code} joinUrl={joinUrl} />}
+    </>
+  );
+
+  // Called as a plain function, never rendered as <Component/>: a component
+  // defined inside this one would be a new type every render and remount the
+  // game screen (resetting e.g. Liar's Dice's reveal animation) each time.
+  function renderScreen() {
+    // Mid-transition: Home stays as the base layer, the game grows into view
+    // from the door through an expanding clip-path.
+    if (portal) {
+      const Tv = state?.gameId ? GAME_UI[state.gameId]?.Tv : undefined;
+      return (
+        <div className="relative h-screen w-screen overflow-hidden">
+          <HomeTv code={code} joinUrl={joinUrl} players={players} doorRefs={doorRefs} />
+          <div
+            className="absolute inset-0 text-white transition-[clip-path] duration-[1150ms] ease-[cubic-bezier(0.22,0.7,0.2,1)]"
+            style={{ clipPath: `circle(${portalOpen ? '150%' : '0px'} at ${portal.x}px ${portal.y}px)` }}
+          >
+            <div className="flex h-full items-center justify-center">
+              {Tv && gameView && <Tv view={gameView.view} players={players} />}
+            </div>
           </div>
         </div>
-      </div>
-    );
-  }
+      );
+    }
 
-  if (state?.phase === 'playing' && state.gameId) {
-    const Tv = GAME_UI[state.gameId]?.Tv;
+    if (state?.phase === 'playing' && state.gameId) {
+      const Tv = GAME_UI[state.gameId]?.Tv;
+      return (
+        <div className="flex h-screen w-screen items-center justify-center text-white">
+          {Tv && gameView ? (
+            <Tv view={gameView.view} players={players} />
+          ) : (
+            <p className="text-2xl">Loading…</p>
+          )}
+        </div>
+      );
+    }
+
     return (
-      <div className="flex h-screen w-screen items-center justify-center text-white">
-        {Tv && gameView ? (
-          <Tv view={gameView.view} players={players} />
-        ) : (
-          <p className="text-2xl">Loading…</p>
-        )}
+      <div className="h-screen w-screen">
+        <HomeTv code={code} joinUrl={joinUrl} players={players} doorRefs={doorRefs} />
       </div>
     );
   }
-
-  return (
-    <div className="h-screen w-screen">
-      <HomeTv code={code} joinUrl={joinUrl} players={players} doorRefs={doorRefs} />
-    </div>
-  );
 }
