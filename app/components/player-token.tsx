@@ -40,6 +40,22 @@ const TOKENS: Record<Avatar, { color: string; d: string }> = {
     color: '#c58ce0',
     d: '<path d="M18 31 V18 q0-6 6-6 h16 q6 0 6 6 V31 Z"/><path d="M7 28 q0-4 4-4 h5 q4 0 4 4 v7 h24 v-7 q0-4 4-4 h5 q4 0 4 4 v19 H7 Z"/><rect x="10" y="47" width="5" height="8" rx="1.5"/><rect x="49" y="47" width="5" height="8" rx="1.5"/>',
   },
+  'teacup': {
+    color: '#f29bb5',
+    d: '<path d="M10 26 h36 v7 q0 17 -18 17 q-18 0 -18 -17 Z"/><path d="M45 30 q11 0 11 8 q0 8 -12 8" fill="none" stroke="INK" stroke-width="4.5"/><ellipse cx="28" cy="53" rx="23" ry="4.5"/><path d="M20 20 q-3 -5 0 -9 M29 20 q-3 -5 0 -9 M38 20 q-3 -5 0 -9" fill="none" stroke="INK" stroke-width="3" stroke-linecap="round"/>',
+  },
+  'houseplant': {
+    color: '#4fbfa8',
+    d: '<path d="M20 40 h24 l-3.5 15 h-17 Z"/><path d="M32 40 V22" stroke="INK" stroke-width="3"/><ellipse cx="22" cy="26" rx="10" ry="5" transform="rotate(-28 22 26)"/><ellipse cx="42" cy="22" rx="10" ry="5" transform="rotate(28 42 22)"/><ellipse cx="32" cy="12" rx="5" ry="9"/>',
+  },
+  'umbrella': {
+    color: '#c98a4b',
+    d: '<path d="M7 31 q25 -28 50 0 q-6 -5 -12.5 0 q-6 -5 -12.5 0 q-6 -5 -12.5 0 q-6 -5 -12.5 0 Z"/><path d="M32 30 V49 q0 7 -7 7 q-5 0 -5 -5" fill="none" stroke="INK" stroke-width="4" stroke-linecap="round"/><rect x="30.5" y="5" width="3" height="5" rx="1"/>',
+  },
+  'skeleton-key': {
+    color: '#7f9be6',
+    d: '<circle cx="15" cy="32" r="10" fill="none" stroke="INK" stroke-width="5"/><rect x="24" y="29.5" width="34" height="5" rx="2"/><rect x="47" y="34" width="4" height="9" rx="1"/><rect x="53" y="34" width="4" height="6" rx="1"/><circle cx="15" cy="32" r="3"/>',
+  },
 };
 
 export const tokenColor = (avatar: string) => (isAvatar(avatar) ? TOKENS[avatar].color : '#a99d84');

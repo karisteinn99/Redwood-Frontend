@@ -11,6 +11,10 @@ export const AVATARS = [
   'desk-lamp',
   'toaster',
   'armchair',
+  'teacup',
+  'houseplant',
+  'umbrella',
+  'skeleton-key',
 ] as const;
 
 export type Avatar = (typeof AVATARS)[number];
@@ -24,6 +28,10 @@ export const AVATAR_NAMES: Record<Avatar, string> = {
   'desk-lamp': 'the desk lamp',
   toaster: 'the toaster',
   armchair: 'the armchair',
+  teacup: 'the teacup',
+  houseplant: 'the houseplant',
+  umbrella: 'the umbrella',
+  'skeleton-key': 'the skeleton key',
 };
 
 export const isAvatar = (value: unknown): value is Avatar =>
