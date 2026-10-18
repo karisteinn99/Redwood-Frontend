@@ -5,6 +5,8 @@ import { use, useEffect, useState } from 'react';
 import { normalizeRoomCode } from '@/lib/room-code';
 import { usePartyRoom } from '@/lib/use-party-room';
 import { AVATARS, AVATAR_NAMES, isAvatar } from '@shared/avatars';
+import { GameList, GamePage, UpNext } from '@/app/components/home/game-picker';
+import { HomeWallBackdrop } from '@/app/components/home/home-wall-backdrop';
 import { PlayerToken } from '@/app/components/player-token';
 import type { HelloMessage, Player } from '@shared/party-types';
 import { GAME_UI } from '@/games/ui';
@@ -15,27 +17,29 @@ interface Saved {
   avatar?: string;
 }
 
-const storageKey = (code: string) => `gohome:${code}`;
+// The dev bench (`/dev`) opens several phones in one browser; `?as=<slot>`
+// gives each its own saved seat, and `?name=` joins it without the form.
+const storageKey = (code: string, slot: string | null) => `gohome:${code}${slot ? `:${slot}` : ''}`;
 
-const load = (code: string): Saved | null => {
+const load = (key: string): Saved | null => {
   try {
-    return JSON.parse(localStorage.getItem(storageKey(code)) ?? 'null');
+    return JSON.parse(localStorage.getItem(key) ?? 'null');
   } catch {
     return null;
   }
 };
 
-const save = (code: string, value: Saved) => {
+const save = (key: string, value: Saved) => {
   try {
-    localStorage.setItem(storageKey(code), JSON.stringify(value));
+    localStorage.setItem(key, JSON.stringify(value));
   } catch {
     // storage unavailable; reconnect just creates a new seat
   }
 };
 
-const forget = (code: string) => {
+const forget = (key: string) => {
   try {
-    localStorage.removeItem(storageKey(code));
+    localStorage.removeItem(key);
   } catch {
     // nothing to forget
   }
@@ -152,15 +156,25 @@ export default function JoinPage({
   const [hello, setHello] = useState<HelloMessage | null>(null);
   const [tutorialGameId, setTutorialGameId] = useState<string | null>(null);
   const [pickingAvatar, setPickingAvatar] = useState(false);
+  const [key, setKey] = useState<string | null>(null);
   const { state, you, gameView, lastError, connected, kicked, send } =
     usePartyRoom(code, hello);
 
   useEffect(() => {
-    const saved = load(code);
+    const query = new URLSearchParams(window.location.search);
+    const key = storageKey(code, query.get('as'));
+    setKey(key);
+    const saved = load(key);
     if (!saved) {
       // Random starting pick so a room full of people who don't bother
       // choosing doesn't all ask for the same character.
-      setAvatar(AVATARS[Math.floor(Math.random() * AVATARS.length)]);
+      const randomAvatar = AVATARS[Math.floor(Math.random() * AVATARS.length)];
+      setAvatar(randomAvatar);
+      const devName = query.get('name')?.trim();
+      if (devName) {
+        setName(devName);
+        setHello({ type: 'hello', role: 'player', name: devName, avatar: randomAvatar });
+      }
       return;
     }
     const savedAvatar = isAvatar(saved.avatar) ? saved.avatar : undefined;
@@ -183,10 +197,10 @@ export default function JoinPage({
   // in a steady desktop tab) would silently rejoin as a brand-new seat with a
   // later joinedAt, handing host to whoever never disconnected.
   useEffect(() => {
-    if (!you || hello?.role !== 'player' || hello.token === you.token) return;
-    save(code, { name: hello.name, token: you.token, avatar: hello.avatar });
+    if (!key || !you || hello?.role !== 'player' || hello.token === you.token) return;
+    save(key, { name: hello.name, token: you.token, avatar: hello.avatar });
     setHello({ ...hello, token: you.token });
-  }, [code, you, hello]);
+  }, [key, you, hello]);
 
   const me = state?.players.find((p) => p.id === you?.playerId);
 
@@ -195,19 +209,20 @@ export default function JoinPage({
   // reconnect doesn't ask for a stale one.
   useEffect(() => {
     if (
+      !key ||
       !me ||
       hello?.role !== 'player' ||
       !hello.token ||
       hello.avatar === me.avatar
     )
       return;
-    save(code, { name: hello.name, token: hello.token, avatar: me.avatar });
+    save(key, { name: hello.name, token: hello.token, avatar: me.avatar });
     setHello({ ...hello, avatar: me.avatar });
-  }, [code, me, hello]);
+  }, [key, me, hello]);
 
   useEffect(() => {
-    if (kicked) forget(code);
-  }, [code, kicked]);
+    if (kicked && key) forget(key);
+  }, [key, kicked]);
 
   const join = () => {
     if (!name.trim()) return;
@@ -215,7 +230,7 @@ export default function JoinPage({
       type: 'hello',
       role: 'player',
       name: name.trim(),
-      token: load(code)?.token,
+      token: key ? load(key)?.token : undefined,
       avatar,
     });
   };
@@ -224,7 +239,8 @@ export default function JoinPage({
   // though `kicked` only resets once a new connection opens.
   if (kicked && hello) {
     return (
-      <div className="flex h-screen flex-col items-center justify-center bg-[var(--home-bg)] px-8 text-center text-[var(--home-text)]">
+      <div className="flex h-screen flex-col items-center justify-center px-8 text-center text-[var(--home-text)]">
+        <HomeWallBackdrop />
         <p className="font-serif text-3xl font-bold">
           You&apos;ve been shown out
         </p>
@@ -244,7 +260,8 @@ export default function JoinPage({
 
   if (!hello || !me) {
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center bg-[var(--home-bg)] px-8 py-10 text-[var(--home-text)]">
+      <div className="flex min-h-screen flex-col items-center justify-center px-8 py-10 text-[var(--home-text)]">
+        <HomeWallBackdrop />
         <p className="mb-2 text-sm tracking-widest text-[var(--home-text-muted)] uppercase">
           Come inside
         </p>
@@ -291,22 +308,38 @@ export default function JoinPage({
           // Joined mid-game: seated, but not part of this game's state.
           <div className="flex flex-col items-center text-center">
             {/* games bring their own full-bleed backdrop; this screen isn't a game */}
-            <div className="fixed inset-0 -z-10 bg-gray-900" />
+            <HomeWallBackdrop />
             <PlayerToken avatar={me.avatar} className="h-20 w-20" />
-            <p className="mt-4 text-2xl font-bold">
+            <p className="mt-4 text-2xl font-bold text-[var(--home-text)]">
               You&apos;re in, {me.name}!
             </p>
-            <p className="mt-2 text-white/50">
+            <p className="mt-2 text-[var(--home-text-muted)]">
               {gameName} is already underway — watch the TV. You&apos;ll be
               dealt into the next game.
             </p>
           </div>
         ) : Phone && gameView ? (
-          <Phone
-            view={gameView.view}
-            players={state?.players ?? []}
-            send={(action) => send({ type: 'action', action })}
-          />
+          <>
+            <Phone
+              view={gameView.view}
+              players={state?.players ?? []}
+              send={(action) => send({ type: 'action', action })}
+            />
+            {GAME_UI[state.gameId]?.Tutorial && (
+              <button
+                onClick={() => setTutorialGameId(state.gameId)}
+                aria-label={`How to play ${gameName}`}
+                className="fixed top-[max(1rem,env(safe-area-inset-top))] right-4 z-40 flex h-10 w-10 items-center justify-center rounded-full border-2 border-white/40 bg-black/25 text-lg font-bold text-white/80 backdrop-blur-sm"
+              >
+                ?
+              </button>
+            )}
+            {tutorialGameId === state.gameId &&
+              (() => {
+                const Tutorial = GAME_UI[state.gameId].Tutorial!;
+                return <Tutorial onClose={() => setTutorialGameId(null)} />;
+              })()}
+          </>
         ) : (
           <p className="text-xl">Loading…</p>
         )}
@@ -333,9 +366,36 @@ export default function JoinPage({
   }
 
   const players = state?.players ?? [];
+  const picked = state?.games.find((g) => g.id === state.pickedGameId) ?? null;
+  const tutorial =
+    tutorialGameId &&
+    GAME_UI[tutorialGameId]?.Tutorial &&
+    (() => {
+      const Tutorial = GAME_UI[tutorialGameId].Tutorial!;
+      return <Tutorial onClose={() => setTutorialGameId(null)} />;
+    })();
+
+  if (me.isHost && picked) {
+    return (
+      <div className="flex min-h-screen flex-col items-center justify-center px-8 py-10 text-[var(--home-text)]">
+        <HomeWallBackdrop />
+        {!connected && <p className="mb-4 text-sm text-yellow-400">Reconnecting…</p>}
+        {lastError && <p className="mb-4 text-sm text-red-400">{lastError}</p>}
+        <GamePage
+          game={picked}
+          players={players}
+          onBack={() => send({ type: 'pick', gameId: null })}
+          onStart={() => send({ type: 'start', gameId: picked.id })}
+          onRules={() => setTutorialGameId(picked.id)}
+        />
+        {tutorial}
+      </div>
+    );
+  }
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-[var(--home-bg)] px-8 py-10 text-[var(--home-text)]">
+    <div className="flex min-h-screen flex-col items-center justify-center px-8 py-10 text-[var(--home-text)]">
+      <HomeWallBackdrop />
       {!connected && (
         <p className="mb-4 text-sm text-yellow-400">Reconnecting…</p>
       )}
@@ -373,27 +433,15 @@ export default function JoinPage({
       )}
 
       {me.isHost ? (
-        <div className="mt-10 w-full max-w-xs space-y-4">
-          {(state?.games ?? []).map((g) => (
-            <div key={g.id}>
-              <button
-                onClick={() => send({ type: 'start', gameId: g.id })}
-                className="w-full rounded-xl py-4 text-xl font-bold text-[var(--home-bg)] transition hover:brightness-110"
-                style={{ background: 'var(--home-magic)' }}
-              >
-                {g.name}
-              </button>
-              {GAME_UI[g.id]?.Tutorial && (
-                <button
-                  onClick={() => setTutorialGameId(g.id)}
-                  className="mt-1 w-full text-sm text-[var(--home-text-muted)] underline underline-offset-2"
-                >
-                  How to play
-                </button>
-              )}
-            </div>
-          ))}
+        <div className="mt-10 w-full max-w-xs">
+          <GameList games={state?.games ?? []} onPick={(gameId) => send({ type: 'pick', gameId })} />
         </div>
+      ) : picked ? (
+        <UpNext
+          game={picked}
+          hostName={players.find((p) => p.isHost)?.name ?? 'The host'}
+          onRules={() => setTutorialGameId(picked.id)}
+        />
       ) : (
         <p className="mt-10 text-[var(--home-text-muted)]">
           Waiting for the host to choose a game…
@@ -402,12 +450,7 @@ export default function JoinPage({
 
       {me.isHost && <GuestList players={players} me={me} send={send} />}
 
-      {tutorialGameId &&
-        GAME_UI[tutorialGameId]?.Tutorial &&
-        (() => {
-          const Tutorial = GAME_UI[tutorialGameId].Tutorial!;
-          return <Tutorial onClose={() => setTutorialGameId(null)} />;
-        })()}
+      {tutorial}
     </div>
   );
 }

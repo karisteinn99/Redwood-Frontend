@@ -17,9 +17,21 @@ export interface GameUi {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   Phone: ComponentType<{ view: any; players: Player[]; send: (action: any) => void }>;
   Tutorial?: ComponentType<{ onClose: () => void }>;
+  // One line under the game's name on the phone's game page at Home.
+  blurb?: string;
 }
 
 export const GAME_UI: Record<string, GameUi> = {
-  'liars-dice': { Tv: LiarsDiceTv, Phone: LiarsDicePhone, Tutorial: LiarsDiceTutorial },
-  'go-fish': { Tv: GoFishTv, Phone: GoFishPhone, Tutorial: GoFishTutorial },
+  'liars-dice': {
+    Tv: LiarsDiceTv,
+    Phone: LiarsDicePhone,
+    Tutorial: LiarsDiceTutorial,
+    blurb: 'Bid on everyone’s hidden dice, or call a liar.',
+  },
+  'go-fish': {
+    Tv: GoFishTv,
+    Phone: GoFishPhone,
+    Tutorial: GoFishTutorial,
+    blurb: 'Ask for cards, and make books of four.',
+  },
 };

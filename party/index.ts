@@ -71,7 +71,7 @@ const DEFAULT_PRUNE_GRACE_MS = 3 * 60 * 1000;
 // snapshot with a different version has its game dropped back to the lobby
 // on load — seats/host are unaffected — instead of restoring a shape the
 // current game code doesn't expect.
-const GAME_STATE_VERSION = 2; // bumped: the demo game was removed from the registry
+const GAME_STATE_VERSION = 3; // bumped: Go Fish cards gained suits (number[] → {rank, suit}[])
 
 interface Snapshot {
   gameStateVersion: number;
@@ -83,6 +83,7 @@ interface Snapshot {
   gameState: unknown;
   gamePlayerIds?: string[] | null;
   joinOverlay?: boolean;
+  pickedGameId?: string | null;
 }
 
 export class HomeRoom {
@@ -96,6 +97,7 @@ export class HomeRoom {
   private gameId: string | null = null;
   private gamePlayerIds: string[] | null = null;
   private joinOverlay = false;
+  private pickedGameId: string | null = null;
   private pruneGraceMs: number;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private gameState: any = null;
@@ -123,6 +125,7 @@ export class HomeRoom {
           this.gameState = snapshot.gameState;
           this.gamePlayerIds = snapshot.gamePlayerIds ?? null;
           this.joinOverlay = snapshot.joinOverlay ?? false;
+          this.pickedGameId = snapshot.pickedGameId ?? null;
         } // else: stale shape — back to lobby, seats kept
       }
 
@@ -221,6 +224,13 @@ export class HomeRoom {
       this.broadcastState();
       this.persist();
       await this.schedulePrune(); // seats that dropped mid-game are prunable again
+      return;
+    }
+    if (msg.type === 'pick') {
+      if (this.phase !== 'lobby') return;
+      this.pickedGameId = msg.gameId && GAMES[msg.gameId] ? msg.gameId : null;
+      this.broadcastState();
+      this.persist();
       return;
     }
     if (msg.type === 'kick') {
@@ -382,6 +392,7 @@ export class HomeRoom {
     this.gameState = def.init(players, this.gameCtx());
     this.gamePlayerIds = players.map((p) => p.id);
     this.joinOverlay = false;
+    this.pickedGameId = null;
     this.phase = 'playing';
     this.broadcastState();
     this.broadcastViews();
@@ -523,6 +534,7 @@ export class HomeRoom {
       gameId: this.gameId,
       gamePlayerIds: this.gamePlayerIds,
       joinOverlay: this.joinOverlay,
+      pickedGameId: this.pickedGameId,
       games: gameInfos(),
     } satisfies { type: 'state' } & RoomState;
     return JSON.stringify(out);
@@ -544,6 +556,7 @@ export class HomeRoom {
       gameState: this.gameState,
       gamePlayerIds: this.gamePlayerIds,
       joinOverlay: this.joinOverlay,
+      pickedGameId: this.pickedGameId,
     };
     // Fire-and-forget: state is rebuilt from the latest write in the
     // constructor, so an occasional dropped write just costs the room's

@@ -66,6 +66,8 @@ const totalCards = () => {
   return handTotal + bookTotal * 4 + v.stockCount;
 };
 assert(totalCards() === 52, 'all 52 cards accounted for at game start');
+const dealt = players.flatMap((p) => p.log.view.view.yourHand.map((c) => `${c.rank}-${c.suit}`));
+assert(new Set(dealt).size === dealt.length, 'every dealt card is a distinct rank and suit');
 
 // Deterministic illegal-move checks (always possible regardless of the deal)
 const current = () => byId[tv.log.view.view.currentPlayerId];
@@ -73,7 +75,7 @@ const cur = current();
 const curHand = cur.log.view.view.yourHand;
 let missingRank = null;
 for (let r = 1; r <= 13; r++) {
-  if (!curHand.includes(r)) {
+  if (!curHand.some((c) => c.rank === r)) {
     missingRank = r;
     break;
   }
@@ -81,11 +83,11 @@ for (let r = 1; r <= 13; r++) {
 const otherId = players.find((p) => p.log.you.playerId !== cur.log.you.playerId).log.you.playerId;
 
 const nonCurrent = players.find((p) => p !== cur);
-send(nonCurrent, { type: 'action', action: { type: 'ask', targetId: otherId, rank: curHand[0] } });
+send(nonCurrent, { type: 'action', action: { type: 'ask', targetId: otherId, rank: curHand[0].rank } });
 await wait();
 assert(nonCurrent.log.error !== null, 'acting out of turn is rejected');
 
-send(cur, { type: 'action', action: { type: 'ask', targetId: cur.log.you.playerId, rank: curHand[0] } });
+send(cur, { type: 'action', action: { type: 'ask', targetId: cur.log.you.playerId, rank: curHand[0].rank } });
 await wait();
 assert(cur.log.error !== null, 'targeting yourself is rejected');
 
@@ -117,9 +119,9 @@ while (!tv.log.view.finished && guard++ < 500) {
 
   let targetId = null;
   let rank = null;
-  outer: for (const r of new Set(hand)) {
+  outer: for (const r of new Set(hand.map((c) => c.rank))) {
     for (const o of others) {
-      if (o.log.view.view.yourHand.includes(r)) {
+      if (o.log.view.view.yourHand.some((c) => c.rank === r)) {
         targetId = o.log.you.playerId;
         rank = r;
         break outer;
@@ -127,7 +129,7 @@ while (!tv.log.view.finished && guard++ < 500) {
     }
   }
   if (rank === null) {
-    rank = hand[0];
+    rank = hand[0].rank;
     targetId = others[Math.floor(Math.random() * others.length)].log.you.playerId;
   }
 
