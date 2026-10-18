@@ -19,6 +19,8 @@ export interface RoomState {
   gamePlayerIds: string[] | null;
   // Host-toggled "let someone in" QR overlay on the TV during a game.
   joinOverlay: boolean;
+  // The game the host has opened at Home but not started yet. Lobby only.
+  pickedGameId: string | null;
   games: GameInfo[];
 }
 
@@ -33,6 +35,7 @@ export type ClientMessage =
   | { type: 'home' }
   | { type: 'avatar'; avatar: string }
   // Host-only from here down.
+  | { type: 'pick'; gameId: string | null }
   | { type: 'kick'; playerId: string }
   | { type: 'transferHost'; playerId: string }
   | { type: 'joinOverlay'; open: boolean };

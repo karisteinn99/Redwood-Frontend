@@ -38,11 +38,13 @@
   --home-code-low: #9a85d3;
 }
 
-/* the wall: 172px planks in four tones, each with a dark seam and a catch-light */
+/* the wall: 172px planks in four tones, each with a dark seam and a catch-light
+   (phones set a narrower --plank, see home-wall-backdrop.tsx) */
 .home-wall {
+  --p: var(--plank, 172px);
   background:
-    linear-gradient(90deg, rgba(0, 0, 0, 0.42) 0 2px, rgba(255, 220, 170, 0.05) 2px 3px, transparent 3px) 0 0 / 172px 100%,
-    linear-gradient(90deg, #2a221a 0 172px, #231c15 172px 344px, #2c241b 344px 516px, #261f17 516px 688px) 0 0 / 688px 100%;
+    linear-gradient(90deg, rgba(0, 0, 0, 0.42) 0 2px, rgba(255, 220, 170, 0.05) 2px 3px, transparent 3px) 0 0 / var(--p) 100%,
+    linear-gradient(90deg, #2a221a 0 var(--p), #231c15 var(--p) calc(var(--p) * 2), #2c241b calc(var(--p) * 2) calc(var(--p) * 3), #261f17 calc(var(--p) * 3) calc(var(--p) * 4)) 0 0 / calc(var(--p) * 4) 100%;
 }
 
 /* the room code: the word in a twilight gradient, the number brighter */

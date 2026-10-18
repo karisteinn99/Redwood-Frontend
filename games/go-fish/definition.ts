@@ -1,14 +1,23 @@
 import { defineGame } from '@shared/game';
 
 export const STARTING_HAND = 5;
-export const RANKS = 13; // 1-13; suits are irrelevant to gameplay, never modeled
-export const COPIES_PER_RANK = 4;
+export const RANKS = 13; // 1-13
+export const SUITS = ['spade', 'heart', 'club', 'diamond'] as const;
+export const COPIES_PER_RANK = SUITS.length;
+
+// Suits never affect play (asks and books are by rank); they exist so every
+// card in a hand is a real, distinct card to draw.
+export type Suit = (typeof SUITS)[number];
+export interface Card {
+  rank: number;
+  suit: Suit;
+}
 
 export interface GoFishState {
   order: string[]; // fixed at init — nobody is ever removed, unlike Liar's Dice's elimination
-  hands: Record<string, number[]>; // unbooked cards currently held, per player
+  hands: Record<string, Card[]>; // unbooked cards currently held, per player
   books: Record<string, number[]>; // completed ranks (sets of 4), public once formed
-  stock: number[]; // face-down pile, index 0 = top
+  stock: Card[]; // face-down pile, index 0 = top
   currentPlayerId: string;
   lastEvent: GoFishEvent | null; // public commentary only — nothing here needs a group pause
 }
@@ -32,15 +41,15 @@ export interface GoFishPublicView {
 
 export interface GoFishPlayerView extends GoFishPublicView {
   yourId: string;
-  yourHand: number[];
+  yourHand: Card[];
 }
 
 // The only client-checkable illegal move: naming a rank you don't hold.
 // There's no legal-move restriction on *who* to target — not knowing the
 // target's hand is the entire point of the game.
-export const distinctRanks = (hand: number[]): number[] => [...new Set(hand)].sort((a, b) => a - b);
+export const distinctRanks = (hand: Card[]): number[] => [...new Set(hand.map((c) => c.rank))].sort((a, b) => a - b);
 
-function shuffled(deck: number[], random: () => number): number[] {
+function shuffled<T>(deck: T[], random: () => number): T[] {
   const arr = [...deck];
   for (let i = arr.length - 1; i > 0; i--) {
     const j = Math.floor(random() * (i + 1));
@@ -52,13 +61,13 @@ function shuffled(deck: number[], random: () => number): number[] {
 // Extracts any completed 4-of-a-kind out of a hand into books. Run after
 // every hand mutation (deal, transfer, draw) rather than only where a book
 // "should" be possible, so there's no reliance on that invariant holding.
-function settleBooks(hand: number[], books: number[]): { hand: number[]; books: number[] } {
+function settleBooks(hand: Card[], books: number[]): { hand: Card[]; books: number[] } {
   const counts = new Map<number, number>();
-  for (const rank of hand) counts.set(rank, (counts.get(rank) ?? 0) + 1);
+  for (const { rank } of hand) counts.set(rank, (counts.get(rank) ?? 0) + 1);
   const completed = [...counts.entries()].filter(([, n]) => n === COPIES_PER_RANK).map(([rank]) => rank);
   if (completed.length === 0) return { hand, books };
   const completedSet = new Set(completed);
-  return { hand: hand.filter((rank) => !completedSet.has(rank)), books: [...books, ...completed] };
+  return { hand: hand.filter((c) => !completedSet.has(c.rank)), books: [...books, ...completed] };
 }
 
 function isGameOver(state: GoFishState): boolean {
@@ -123,14 +132,14 @@ export const goFishGame = defineGame<GoFishState, GoFishAction, GoFishPublicView
   maxPlayers: 8,
 
   init(players, ctx) {
-    const fullDeck: number[] = [];
+    const fullDeck: Card[] = [];
     for (let rank = 1; rank <= RANKS; rank++) {
-      for (let copy = 0; copy < COPIES_PER_RANK; copy++) fullDeck.push(rank);
+      for (const suit of SUITS) fullDeck.push({ rank, suit });
     }
     const deck = shuffled(fullDeck, ctx.random);
     const order = players.map((p) => p.id);
 
-    const hands: Record<string, number[]> = {};
+    const hands: Record<string, Card[]> = {};
     const books: Record<string, number[]> = {};
     let i = 0;
     for (const id of order) {
@@ -160,16 +169,16 @@ export const goFishGame = defineGame<GoFishState, GoFishAction, GoFishPublicView
     if (targetId === playerId) return { error: 'Pick another player' };
     if (!state.order.includes(targetId)) return { error: 'Unknown player' };
     if (!Number.isInteger(rank) || rank < 1 || rank > RANKS) return { error: 'Rank must be between 1 and 13' };
-    if (!state.hands[playerId].includes(rank)) return { error: 'You can only ask for a rank you hold' };
+    if (!state.hands[playerId].some((c) => c.rank === rank)) return { error: 'You can only ask for a rank you hold' };
 
     const targetHand = state.hands[targetId];
-    const matches = targetHand.filter((r) => r === rank);
+    const matches = targetHand.filter((c) => c.rank === rank);
 
     if (matches.length > 0) {
       const { hand, books } = settleBooks([...state.hands[playerId], ...matches], state.books[playerId]);
       const next: GoFishState = {
         ...state,
-        hands: { ...state.hands, [playerId]: hand, [targetId]: targetHand.filter((r) => r !== rank) },
+        hands: { ...state.hands, [playerId]: hand, [targetId]: targetHand.filter((c) => c.rank !== rank) },
         books: { ...state.books, [playerId]: books },
         lastEvent: { type: 'transfer', askerId: playerId, targetId, rank, count: matches.length },
       };
@@ -188,7 +197,7 @@ export const goFishGame = defineGame<GoFishState, GoFishAction, GoFishPublicView
 
     const [drawn, ...restStock] = state.stock;
     const { hand, books } = settleBooks([...state.hands[playerId], drawn], state.books[playerId]);
-    const hit = drawn === rank;
+    const hit = drawn.rank === rank;
     const next: GoFishState = {
       ...state,
       stock: restStock,

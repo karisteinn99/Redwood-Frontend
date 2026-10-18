@@ -58,10 +58,19 @@ send(b, { type: 'start', gameId: 'liars-dice' });
 await wait();
 assert(tv.log.state?.phase === 'lobby', 'non-host start ignored');
 
+// picking a game shows it to everyone as up next; only the host can pick
+send(b, { type: 'pick', gameId: 'go-fish' });
+await wait();
+assert(tv.log.state?.pickedGameId === null, 'non-host pick ignored');
+send(a, { type: 'pick', gameId: 'liars-dice' });
+await wait();
+assert(c.log.state?.pickedGameId === 'liars-dice', 'host pick reaches every phone');
+
 // host start
 send(a, { type: 'start', gameId: 'liars-dice' });
 await wait();
 assert(tv.log.state?.phase === 'playing', 'host start begins game');
+assert(tv.log.state?.pickedGameId === null, 'starting clears the picked game');
 assert(tv.log.view?.view && !('yourDice' in tv.log.view.view), 'TV view has no dice');
 assert(Array.isArray(a.log.view?.view?.yourDice), 'Anna sees her own dice');
 assert(

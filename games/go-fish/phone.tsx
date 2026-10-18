@@ -4,9 +4,11 @@ import type { Player } from '@shared/party-types';
 
 import { PlayerToken } from '@/app/components/player-token';
 
-import { CardFace } from './card';
+import { CardFan } from './card';
 import {
   distinctRanks,
+  SUITS,
+  type Card,
   type GoFishAction,
   type GoFishPlayerView,
 } from './definition';
@@ -17,12 +19,13 @@ import { eventKey, eventSentence } from './tv';
 // The Dock, phone side — see tv.tsx. Your hand doubles as the rank picker:
 // on your turn, tap a card to ask for that rank.
 
-function groupedHand(hand: number[]): { rank: number; count: number }[] {
-  const counts = new Map<number, number>();
-  for (const rank of hand) counts.set(rank, (counts.get(rank) ?? 0) + 1);
-  return [...counts.entries()]
-    .sort((a, b) => a[0] - b[0])
-    .map(([rank, count]) => ({ rank, count }));
+function groupedHand(hand: Card[]): { rank: number; cards: Card[] }[] {
+  return distinctRanks(hand).map((rank) => ({
+    rank,
+    cards: hand
+      .filter((c) => c.rank === rank)
+      .sort((a, b) => SUITS.indexOf(a.suit) - SUITS.indexOf(b.suit)),
+  }));
 }
 
 export function GoFishPhone({
@@ -88,24 +91,19 @@ export function GoFishPhone({
         Your hand{isYourTurn && ' — tap a rank'}
       </p>
       <div className="mt-3 flex flex-wrap justify-center gap-x-2 gap-y-4">
-        {groupedHand(view.yourHand).map(({ rank: r, count }) => (
+        {groupedHand(view.yourHand).map(({ rank: r, cards }) => (
           <button
             key={r}
             onClick={() => setRank(r)}
             disabled={!isYourTurn}
-            aria-label={`Ask for ${r}`}
-            className="relative disabled:cursor-default"
+            aria-label={`Ask for ${rankLabel(r)}s`}
+            className="disabled:cursor-default"
           >
-            <CardFace
-              rank={r}
+            <CardFan
+              cards={cards}
               size="lg"
               selected={isYourTurn && chosenRank === r}
             />
-            {count > 1 && (
-              <span className="absolute -top-2 -right-2 flex h-6 w-6 items-center justify-center rounded-full bg-[var(--dock-water)] text-xs font-bold ring-2 ring-[var(--dock-card)]">
-                ×{count}
-              </span>
-            )}
           </button>
         ))}
         {view.yourHand.length === 0 && (

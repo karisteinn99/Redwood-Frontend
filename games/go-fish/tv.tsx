@@ -2,7 +2,7 @@ import type { Player } from '@shared/party-types';
 
 import { PlayerToken } from '@/app/components/player-token';
 
-import { CardBack, CardFace, FannedBacks } from './card';
+import { bookCards, CardBack, CardFan, FannedBacks } from './card';
 import type { GoFishEvent, GoFishPublicView } from './definition';
 import { DockScenery } from './dock-scenery';
 import { rankLabel } from './rank-glyphs';
@@ -36,9 +36,9 @@ export function eventKey(view: GoFishPublicView): string {
 function Books({ books }: { books: number[] }) {
   if (books.length === 0) return null;
   return (
-    <span className="flex flex-wrap justify-center gap-1">
-      {books.map((rank, i) => (
-        <CardFace key={i} rank={rank} size="sm" />
+    <span className="flex flex-wrap justify-center gap-x-2 gap-y-1">
+      {books.map((rank) => (
+        <CardFan key={rank} cards={bookCards(rank)} size="sm" />
       ))}
     </span>
   );

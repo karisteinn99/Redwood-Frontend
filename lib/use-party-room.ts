@@ -59,6 +59,7 @@ export function usePartyRoom(code: string, hello: HelloMessage | null) {
           gameId: msg.gameId,
           gamePlayerIds: msg.gamePlayerIds ?? null,
           joinOverlay: msg.joinOverlay ?? false,
+          pickedGameId: msg.pickedGameId ?? null,
           games: msg.games,
         });
         if (msg.phase === 'lobby') setGameView(null);

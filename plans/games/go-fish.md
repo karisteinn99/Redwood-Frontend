@@ -8,14 +8,15 @@ Second real game, built to prove the `GameDefinition` interface generalizes beyo
 - A lake at sunset: indigo→plum→coral sky, a dark far shore, deep lake-blue water with drifting ripples, a bobber, the end of a wooden dock along the bottom edge. Chosen to sit clearly apart from the Ship (cold teal night at sea) while still being "water" for a fishing game. Design note in `.planning/sketches/the-dock/`.
 - Tokens in `app/globals.css` (`--dock-*`), same pattern as `--home-*`/`--ship-*`. Coral (`--dock-coral`) is the "your turn / active / primary button" accent; sun-gold (`--dock-sun`) is reserved for the winner line — the same split the Ship uses between teal and lantern-amber.
 - `games/go-fish/dock-scenery.tsx`: `DockScenery` (TV, full scenery) and `DockBackdrop` (phone, colors only — no scenery competing with a hand of cards on a small screen).
-- `games/go-fish/card.tsx`: cream `CardFace` (rank + fish pip, aces/face cards in red purely for variety — suits still aren't modeled) and wave-patterned `CardBack`; `FannedBacks` shows a hand count as overlapping backs, squeezed tighter as it grows.
+- ~~`games/go-fish/card.tsx`: cream `CardFace` (rank + fish pip, aces/face cards in red purely for variety — suits still aren't modeled) and wave-patterned `CardBack`.~~ Replaced by the approved Dock deck (below).
+- [x] **The Dock deck** (approved 2026-10-18, design system `PlayingCard`): Classic number cards, Fishbone lattice back, Classical aces (only the ace of spades has the fish filigree), Geometric royals. Pre-rendered from the approved design artifacts into `public/cards/dock/<rank>-<suit>.svg` + `back.svg` (checked identical to the design system's previews; the corner indices are Fraunces 800 converted to outlines so the files need no web font inside `<img>`). `card.tsx`: `CardFace`/`CardBack` are `<img>`s, `CardFan` overlaps cards so each corner index shows, `FannedBacks` for hand counts. Phone: each rank in your hand is a fan of its actual cards (replaces the ×N badge); TV: each book is a mini fan of its four suits. Cards gained suits in state for this (see Rules).
 - TV: each seat is a panel (avatar, name, fanned backs, books as mini cards) with a coral glow on the current player; the stock is "the pond"; the commentary line re-splashes on every new event (keyed off stock/hand counts/event, since state carries no event id — cosmetic only).
 - Phone: the hand doubles as the rank picker — tap a card to choose that rank (replaces the separate rank buttons); targets are avatar chips showing their hand count; the Ask button spells out the ask ("Ask Ben for 5s").
 - Tutorial restyled to the Dock tokens, content unchanged.
 - Verified in a real browser (Playwright, TV 1280×720 + 390×844 phones): TV in-game, phone on-turn/off-turn, late-join overlay on top of it. `go-fish-smoke.mjs` unaffected (purely visual change, protocol untouched).
 
 ## Rules locked in
-- Standard 52-card deck; only rank (1–13) matters, suits are never modeled.
+- Standard 52-card deck; only rank (1–13) matters for play. Cards carry a suit (`{rank, suit}`) only so each one is a real, distinct card to draw (`GAME_STATE_VERSION` 3); asks and books stay by rank.
 - Every player starts with 5 cards, fixed regardless of player count. Remainder is a face-down stock pile.
 - On your turn: pick **one specific other player** (not the whole table) and name **one rank you already hold**.
   - They have it → hand over **all** matching cards, you go again.
@@ -32,9 +33,9 @@ Second real game, built to prove the `GameDefinition` interface generalizes beyo
 ```ts
 interface GoFishState {
   order: string[];                    // fixed at init, nobody is ever removed
-  hands: Record<string, number[]>;    // unbooked cards currently held
+  hands: Record<string, Card[]>;      // unbooked cards currently held ({rank, suit})
   books: Record<string, number[]>;    // completed ranks, public
-  stock: number[];                    // face-down pile, index 0 = top
+  stock: Card[];                      // face-down pile, index 0 = top
   currentPlayerId: string;
   lastEvent: GoFishEvent | null;      // public commentary, non-blocking
 }
