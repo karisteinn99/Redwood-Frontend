@@ -48,3 +48,5 @@ Session, realtime, game layer, persistence, deploy. Living file: tick items, add
 ## 4. Dev tools
 - [x] Dev bench (`/dev`, Kári's ask 2026-10-18): the TV and any number of phones in one browser, "+ Add player" to seat another, per-frame Reload and Leave, room and phones kept in the URL. Lets Kári play a real game alone and give feedback without QR codes or extra browsers. Works on the deployed site too (it only frames the public pages).
 - [ ] Leave only closes the phone; its seat lingers disconnected until the lobby prune. A real "kick" from the bench would need host rights.
+- [x] Bench v2: TV on top sized to the window, phones below; phones join one at a time in bench order (the bench listens in as a second TV), so the first phone is always host, tagged above it.
+- [ ] `deploy-party.yml` has failed on every run: the `CLOUDFLARE_ACCOUNT_ID`/`CLOUDFLARE_API_TOKEN` repo secrets are empty, so the live server only changes on a manual `pnpm party:deploy`. Kári to add the secrets.
