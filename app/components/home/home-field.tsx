@@ -1,16 +1,11 @@
 'use client';
 
-import { useEffect, useImperativeHandle, useRef, type Ref } from 'react';
+import { useEffect, useRef } from 'react';
 
 export interface WaveSource {
   x: number;
   y: number;
   rgb: [number, number, number];
-}
-
-export interface HomeFieldHandle {
-  // Sends a wave from source `i`, or from the next one in turn.
-  sendWave: (i?: number) => void;
 }
 
 const W = 1920, H = 1080, MOTES = 260, SPEED = 9, BAND = 70, REACH = 2300, PERIOD = 10000;
@@ -22,11 +17,9 @@ const W = 1920, H = 1080, MOTES = 260, SPEED = 9, BAND = 70, REACH = 2300, PERIO
 export function HomeField({
   sources,
   onBreath,
-  ref,
 }: {
   sources: () => WaveSource[];
   onBreath: (i: number) => void;
-  ref?: Ref<HomeFieldHandle>;
 }) {
   const canvas = useRef<HTMLCanvasElement>(null);
   const waves = useRef<{ x: number; y: number; r: number; rgb: [number, number, number] }[]>([]);
@@ -35,17 +28,17 @@ export function HomeField({
   const latest = useRef({ sources, onBreath });
   latest.current = { sources, onBreath };
 
-  const sendWave = (i?: number) => {
+  // Sends a wave from the next window in turn.
+  const sendWave = () => {
     const all = latest.current.sources();
     if (all.length === 0) return;
-    const idx = i ?? next.current++ % all.length;
+    const idx = next.current++ % all.length;
     const s = all[idx];
     if (!s) return;
     timer.current = 0;
     waves.current.push({ x: s.x, y: s.y, r: 0, rgb: s.rgb });
     latest.current.onBreath(idx);
   };
-  useImperativeHandle(ref, () => ({ sendWave }));
 
   useEffect(() => {
     const ctx = canvas.current?.getContext('2d');

@@ -59,7 +59,7 @@
   color: transparent;
 }
 
-/* a window breathes when its wave leaves, and holds the light while pointed at */
+/* a window breathes when its wave leaves: a ~1 s swell, then a slow fade */
 .home-pane-light,
 .home-rim {
   opacity: 0;
