@@ -1,12 +1,12 @@
 'use client';
 
-import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState, type RefObject } from 'react';
+import { useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type RefObject } from 'react';
 
 import { ROOM_DOORS, type RoomDoor } from '@/games/rooms';
 import type { Player } from '@shared/party-types';
 
 import { GuestRail } from './guest-rail';
-import { HomeField, type HomeFieldHandle, type WaveSource } from './home-field';
+import { HomeField, type WaveSource } from './home-field';
 import { HomeLogo } from './home-logo';
 import { PANES, windowMarkup, type Pane } from './home-windows';
 import { StyledQr } from './styled-qr';
@@ -18,8 +18,8 @@ const STAGE_W = 1920, STAGE_H = 1080;
 // Laid out on a fixed 1920×1080 stage scaled to the screen, because the
 // target is a 65" TV at 1080p and every size was reviewed in those pixels.
 //
-// The TV never needs input; the fullscreen button is a one-time setup
-// action, and pointing at a window (a mouse near the TV) just sends a wave.
+// The TV never takes input (the host picks games on their phone); the
+// fullscreen button is the one exception, a one-time setup action.
 // The portal transition into a game is driven by server state (see
 // room/[code]/page.tsx), not by anything here.
 function FullscreenButton() {
@@ -74,9 +74,7 @@ export function HomeTv({
 }) {
   const scale = useStageScale();
   const stage = useRef<HTMLDivElement>(null);
-  const field = useRef<HomeFieldHandle>(null);
   const [breathing, setBreathing] = useState<Set<number>>(new Set());
-  const [hovered, setHovered] = useState<number | null>(null);
 
   // Wave origins in stage pixels: each live window's centre, a little high.
   const sources = useCallback((): WaveSource[] => {
@@ -123,7 +121,7 @@ export function HomeTv({
         </svg>
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_760px_520px_at_260px_120px,rgba(240,151,60,0.14),transparent_70%)]" />
         <div className="absolute inset-x-0 bottom-0 h-[26px] border-t-2 border-[rgba(255,220,170,0.08)] bg-[linear-gradient(#1a140f,#120e0a)]" />
-        <HomeField ref={field} sources={sources} onBreath={breathe} />
+        <HomeField sources={sources} onBreath={breathe} />
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_40%_45%,transparent_55%,rgba(0,0,0,0.5))]" />
 
         <div className="absolute top-[54px] bottom-[54px] left-[96px] z-[1] w-[1144px]">
@@ -160,12 +158,7 @@ export function HomeTv({
                 door={d}
                 pane={PANES[d.pane]}
                 ref={doorRefs[d.gameId]}
-                lit={hovered === i || breathing.has(i)}
-                onEnter={() => {
-                  setHovered(i);
-                  field.current?.sendWave(i);
-                }}
-                onLeave={() => setHovered((h) => (h === i ? null : h))}
+                lit={breathing.has(i)}
               />
             ))}
             <RoomWindow pane={PANES.building} label="In construction" />
@@ -185,33 +178,31 @@ function RoomWindow({
   pane,
   label,
   lit = false,
-  onEnter,
-  onLeave,
   ref,
 }: {
   door?: RoomDoor;
   pane: Pane;
   label?: string;
   lit?: boolean;
-  onEnter?: () => void;
-  onLeave?: () => void;
   ref?: RefObject<HTMLDivElement | null>;
 }) {
   const id = `win${useId().replace(/[^a-zA-Z0-9]/g, '')}`;
   const live = !!door;
   const title = door?.title;
+  // Memoised so re-renders (the window lighting up and dimming) never replace
+  // the SVG's contents: fresh nodes can't transition, so the breath would snap
+  // on and off instead of swelling and fading.
+  const markup = useMemo(() => ({ __html: windowMarkup(pane, id) }), [pane, id]);
   return (
     <div
-      className={`flex w-[300px] shrink-0 flex-col items-center gap-[22px] ${live ? 'cursor-pointer' : ''} ${lit ? 'home-window-lit' : ''}`}
-      onMouseEnter={onEnter}
-      onMouseLeave={onLeave}
+      className={`flex w-[300px] shrink-0 flex-col items-center gap-[22px] ${lit ? 'home-window-lit' : ''}`}
     >
       <div ref={ref} className="relative h-[260px] w-[176px]">
         <svg
           viewBox="0 0 176 260"
           className={`absolute inset-0 overflow-visible ${live ? '' : 'opacity-60 grayscale brightness-90'}`}
           aria-hidden="true"
-          dangerouslySetInnerHTML={{ __html: windowMarkup(pane, id) }}
+          dangerouslySetInnerHTML={markup}
         />
       </div>
       <span
