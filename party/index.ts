@@ -40,6 +40,8 @@ interface Env {
   // Optional override (e.g. `wrangler dev --var PRUNE_GRACE_MS:2000` for the
   // smoke test); defaults to DEFAULT_PRUNE_GRACE_MS.
   PRUNE_GRACE_MS?: string;
+  // Optional override of DEFAULT_AWAY_GRACE_MS.
+  AWAY_GRACE_MS?: string;
 }
 
 // Persisted per seat. Connection liveness is tracked separately, at
@@ -65,6 +67,11 @@ const SNAPSHOT_KEY = 'snapshot';
 // Long enough to ride out a locked phone or a tab refresh; short enough that
 // people who actually left stop cluttering the guest list.
 const DEFAULT_PRUNE_GRACE_MS = 3 * 60 * 1000;
+
+// How long a dropped seat still counts as present (keeps host, isn't shown
+// as away) before anyone is told. A page refresh reconnects well within it,
+// so nobody sees the host flicker to someone else and back.
+const DEFAULT_AWAY_GRACE_MS = 5000;
 
 // Bump this whenever a game's state shape changes in a way that could break
 // an already-persisted gameState (e.g. a new required field). A stored
@@ -99,12 +106,14 @@ export class HomeRoom {
   private joinOverlay = false;
   private pickedGameId: string | null = null;
   private pruneGraceMs: number;
+  private awayGraceMs: number;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private gameState: any = null;
   private ready: Promise<void>;
 
   constructor(private ctx: DurableObjectState, env: Env) {
     this.pruneGraceMs = Number(env.PRUNE_GRACE_MS) || DEFAULT_PRUNE_GRACE_MS;
+    this.awayGraceMs = Number(env.AWAY_GRACE_MS) || DEFAULT_AWAY_GRACE_MS;
     // Rebuild state after a hibernated room wakes up. blockConcurrencyWhile
     // means no request is handled until this finishes — the equivalent of
     // PartyKit's onStart running before onConnect/onRequest.
@@ -148,7 +157,7 @@ export class HomeRoom {
         else seat.disconnectedAt ??= now;
       }
       this.ensureHost();
-      await this.schedulePrune();
+      await this.scheduleAlarm();
     });
   }
 
@@ -223,7 +232,7 @@ export class HomeRoom {
       this.joinOverlay = false;
       this.broadcastState();
       this.persist();
-      await this.schedulePrune(); // seats that dropped mid-game are prunable again
+      await this.scheduleAlarm(); // seats that dropped mid-game are prunable again
       return;
     }
     if (msg.type === 'pick') {
@@ -252,23 +261,22 @@ export class HomeRoom {
   // Durable Object alarm: removes lobby seats that have been disconnected
   // longer than the grace period. Never runs mid-game — those seats are
   // part of the game state and keep their place until everyone's home.
+  // Also fires when a dropped seat's away grace runs out, so host and the
+  // "away" mark catch up with who actually left.
   async alarm() {
     await this.ready;
-    if (this.phase !== 'lobby') return;
-    const cutoff = Date.now() - this.pruneGraceMs;
-    let pruned = false;
-    for (const seat of [...this.seats.values()]) {
-      if (this.liveSockets.has(seat.id) || seat.disconnectedAt === undefined) continue;
-      if (seat.disconnectedAt > cutoff) continue;
-      this.removeSeat(seat.id);
-      pruned = true;
+    if (this.phase === 'lobby') {
+      const cutoff = Date.now() - this.pruneGraceMs;
+      for (const seat of [...this.seats.values()]) {
+        if (this.liveSockets.has(seat.id) || seat.disconnectedAt === undefined) continue;
+        if (seat.disconnectedAt > cutoff) continue;
+        this.removeSeat(seat.id);
+      }
     }
-    if (pruned) {
-      this.ensureHost();
-      this.broadcastState();
-      this.persist();
-    }
-    await this.schedulePrune();
+    this.ensureHost();
+    this.broadcastState();
+    this.persist();
+    await this.scheduleAlarm();
   }
 
   async webSocketClose(ws: PartyWebSocket) {
@@ -288,18 +296,24 @@ export class HomeRoom {
     this.ensureHost();
     this.broadcastState();
     this.persist();
-    void this.schedulePrune();
+    void this.scheduleAlarm();
   }
 
-  private async schedulePrune() {
-    if (this.phase !== 'lobby') return;
-    const oldest = Math.min(
-      ...[...this.seats.values()]
-        .filter((s) => !this.liveSockets.has(s.id) && s.disconnectedAt !== undefined)
-        .map((s) => s.disconnectedAt!),
-    );
-    if (!Number.isFinite(oldest)) return;
-    await this.ctx.storage.setAlarm(oldest + this.pruneGraceMs);
+  private async scheduleAlarm() {
+    const now = Date.now();
+    const deadlines: number[] = [];
+    for (const s of this.seats.values()) {
+      if (this.liveSockets.has(s.id) || s.disconnectedAt === undefined) continue;
+      if (s.disconnectedAt + this.awayGraceMs > now) deadlines.push(s.disconnectedAt + this.awayGraceMs);
+      if (this.phase === 'lobby') deadlines.push(s.disconnectedAt + this.pruneGraceMs);
+    }
+    if (deadlines.length) await this.ctx.storage.setAlarm(Math.min(...deadlines));
+  }
+
+  // Connected, or dropped so recently it may just be a refresh.
+  private present(seat: Seat): boolean {
+    if (this.liveSockets.has(seat.id)) return true;
+    return seat.disconnectedAt !== undefined && Date.now() - seat.disconnectedAt < this.awayGraceMs;
   }
 
   private removeSeat(seatId: string) {
@@ -503,12 +517,13 @@ export class HomeRoom {
   // connected, hostId is left as-is (remembered for whoever reconnects
   // first) — unless that seat was just removed.
   private ensureHost() {
-    if (this.preferredHostId && this.liveSockets.has(this.preferredHostId)) {
+    const preferred = this.preferredHostId ? this.seats.get(this.preferredHostId) : undefined;
+    if (preferred && this.present(preferred)) {
       this.hostId = this.preferredHostId;
       return;
     }
     const next = [...this.seats.values()]
-      .filter((s) => this.liveSockets.has(s.id))
+      .filter((s) => this.present(s))
       .sort((a, b) => a.joinedAt - b.joinedAt)[0];
     if (next) this.hostId = next.id;
     else if (this.hostId && !this.seats.has(this.hostId)) this.hostId = null;
@@ -522,7 +537,7 @@ export class HomeRoom {
         name: s.name,
         avatar: s.avatar,
         isHost: s.id === this.hostId,
-        connected: this.liveSockets.has(s.id),
+        connected: this.present(s),
       }));
   }
 

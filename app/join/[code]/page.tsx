@@ -7,6 +7,7 @@ import { usePartyRoom } from '@/lib/use-party-room';
 import { AVATARS, AVATAR_NAMES, isAvatar } from '@shared/avatars';
 import { GameList, GamePage, UpNext } from '@/app/components/home/game-picker';
 import { HomeWallBackdrop } from '@/app/components/home/home-wall-backdrop';
+import { LoadingScreen } from '@/app/components/home/loading-screen';
 import { PlayerToken } from '@/app/components/player-token';
 import type { HelloMessage, Player } from '@shared/party-types';
 import { GAME_UI } from '@/games/ui';
@@ -156,8 +157,9 @@ export default function JoinPage({
   const [hello, setHello] = useState<HelloMessage | null>(null);
   const [tutorialGameId, setTutorialGameId] = useState<string | null>(null);
   const [pickingAvatar, setPickingAvatar] = useState(false);
+  // null until this phone's saved seat (if any) has been looked up.
   const [key, setKey] = useState<string | null>(null);
-  const { state, you, gameView, lastError, connected, kicked, send } =
+  const { state, you, gameView, lastError, reconnecting, kicked, send } =
     usePartyRoom(code, hello);
 
   useEffect(() => {
@@ -258,6 +260,10 @@ export default function JoinPage({
     );
   }
 
+  // Before the saved seat is checked, or while rejoining it, show the quiet
+  // loader rather than flashing the join form or a half-built screen.
+  if (key === null || (hello?.role === 'player' && hello.token && !me && !kicked)) return <LoadingScreen />;
+
   if (!hello || !me) {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center px-8 py-10 text-[var(--home-text)]">
@@ -298,9 +304,10 @@ export default function JoinPage({
     const dealtIn = !state.gamePlayerIds || state.gamePlayerIds.includes(me.id);
     const gameName =
       state.games.find((g) => g.id === state.gameId)?.name ?? 'the game';
+    if (dealtIn && !gameView) return <LoadingScreen />;
     return (
       <div className="flex h-screen flex-col items-center justify-center px-8 text-white">
-        {!connected && (
+        {reconnecting && (
           <p className="mb-4 text-sm text-yellow-400">Reconnecting…</p>
         )}
         {lastError && <p className="mb-4 text-sm text-red-400">{lastError}</p>}
@@ -379,7 +386,7 @@ export default function JoinPage({
     return (
       <div className="flex min-h-screen flex-col items-center justify-center px-8 py-10 text-[var(--home-text)]">
         <HomeWallBackdrop />
-        {!connected && <p className="mb-4 text-sm text-yellow-400">Reconnecting…</p>}
+        {reconnecting && <p className="mb-4 text-sm text-yellow-400">Reconnecting…</p>}
         {lastError && <p className="mb-4 text-sm text-red-400">{lastError}</p>}
         <GamePage
           game={picked}
@@ -396,7 +403,7 @@ export default function JoinPage({
   return (
     <div className="flex min-h-screen flex-col items-center justify-center px-8 py-10 text-[var(--home-text)]">
       <HomeWallBackdrop />
-      {!connected && (
+      {reconnecting && (
         <p className="mb-4 text-sm text-yellow-400">Reconnecting…</p>
       )}
       {lastError && <p className="mb-4 text-sm text-red-400">{lastError}</p>}
