@@ -1,11 +1,11 @@
 'use client';
 
-import { use, useEffect, useState } from 'react';
+import { use, useEffect, useLayoutEffect, useRef, useState } from 'react';
 
 import { normalizeRoomCode } from '@/lib/room-code';
 import { usePartyRoom } from '@/lib/use-party-room';
 import { AVATARS, AVATAR_NAMES, isAvatar } from '@shared/avatars';
-import { GameList, GamePage, UpNext } from '@/app/components/home/game-picker';
+import { GameList, GameStage } from '@/app/components/home/game-picker';
 import { HomeWallBackdrop } from '@/app/components/home/home-wall-backdrop';
 import { LoadingScreen } from '@/app/components/home/loading-screen';
 import { PlayerToken } from '@/app/components/player-token';
@@ -80,8 +80,8 @@ function AvatarPicker({
 }
 
 // Host-only guest management at Home: hand over host, or remove someone
-// (a ghost seat from a refreshed tab, or a person who left). Removing takes
-// a second tap so a stray touch can't kick anyone.
+// (a ghost seat from a refreshed tab, or a person who left), from a ⋯ menu
+// on each row. Removing takes a second tap so a stray touch can't kick anyone.
 function GuestList({
   players,
   me,
@@ -91,9 +91,15 @@ function GuestList({
   me: Player;
   send: ReturnType<typeof usePartyRoom>['send'];
 }) {
-  const [confirming, setConfirming] = useState<string | null>(null);
+  const [menu, setMenu] = useState<string | null>(null);
+  const [confirming, setConfirming] = useState(false);
   const others = players.filter((p) => p.id !== me.id);
   if (others.length === 0) return null;
+
+  const close = () => {
+    setMenu(null);
+    setConfirming(false);
+  };
 
   return (
     <div className="mt-10 w-full max-w-xs">
@@ -104,7 +110,7 @@ function GuestList({
         {others.map((p) => (
           <li
             key={p.id}
-            className="flex items-center gap-2 rounded-xl border border-[var(--home-border)] bg-[var(--home-surface)] px-3 py-2"
+            className="relative flex items-center gap-3 rounded-xl border border-[var(--home-border)] bg-[var(--home-surface)] py-2 pr-1 pl-3"
           >
             <span className={p.connected ? '' : 'opacity-40'}>
               <PlayerToken avatar={p.avatar} host={p.isHost} className="h-9 w-9" />
@@ -118,31 +124,149 @@ function GuestList({
               )}
             </span>
             <button
-              onClick={() => send({ type: 'transferHost', playerId: p.id })}
-              disabled={!p.connected}
-              className="rounded-lg px-2 py-1.5 text-sm text-[var(--home-magic)] disabled:opacity-30"
-            >
-              Make host
-            </button>
-            <button
               onClick={() => {
-                if (confirming !== p.id) return setConfirming(p.id);
-                send({ type: 'kick', playerId: p.id });
-                setConfirming(null);
+                setConfirming(false);
+                setMenu((m) => (m === p.id ? null : p.id));
               }}
-              onBlur={() => setConfirming((c) => (c === p.id ? null : c))}
-              className={`rounded-lg px-2 py-1.5 text-sm ${
-                confirming === p.id
-                  ? 'bg-[var(--home-ember)] font-bold text-[var(--home-bg)]'
-                  : 'text-[var(--home-text-muted)]'
-              }`}
+              aria-label={`Options for ${p.name}`}
+              aria-expanded={menu === p.id}
+              className="rounded-lg px-3 py-3 text-[var(--home-text-muted)] transition hover:text-[var(--home-text)]"
             >
-              {confirming === p.id ? 'Sure?' : 'Remove'}
+              <svg width="20" height="4" viewBox="0 0 20 4" fill="currentColor" aria-hidden="true">
+                <circle cx="2" cy="2" r="2" />
+                <circle cx="10" cy="2" r="2" />
+                <circle cx="18" cy="2" r="2" />
+              </svg>
             </button>
+            {menu === p.id && (
+              <>
+                <div className="fixed inset-0 z-10" onClick={close} />
+                <div className="absolute top-full right-1 z-20 mt-1 w-48 overflow-hidden rounded-xl border border-[var(--home-border)] bg-[var(--home-surface)] shadow-[0_12px_32px_rgba(0,0,0,0.5)]">
+                  <button
+                    onClick={() => {
+                      send({ type: 'transferHost', playerId: p.id });
+                      close();
+                    }}
+                    disabled={!p.connected}
+                    className="block w-full px-4 py-3 text-left transition hover:bg-white/5 disabled:opacity-40"
+                  >
+                    Make host
+                  </button>
+                  <button
+                    onClick={() => {
+                      if (!confirming) return setConfirming(true);
+                      send({ type: 'kick', playerId: p.id });
+                      close();
+                    }}
+                    className={`block w-full border-t border-[var(--home-border)] px-4 py-3 text-left transition ${
+                      confirming
+                        ? 'bg-[var(--home-ember)] font-bold text-[var(--home-bg)]'
+                        : 'text-[var(--home-ember)] hover:bg-white/5'
+                    }`}
+                  >
+                    {confirming ? 'Tap again to remove' : 'Remove'}
+                  </button>
+                </div>
+              </>
+            )}
           </li>
         ))}
       </ul>
     </div>
+  );
+}
+
+// You, in the top-right corner of every Home screen: your character and
+// name, tap to change character. Right after joining it first fades in large
+// in the middle of the screen, then slides up into the corner.
+const INTRO_HOLD_MS = 1100;
+const INTRO_MOVE_MS = 600;
+
+function MeChip({
+  me,
+  players,
+  intro,
+  onIntroDone,
+  send,
+}: {
+  me: Player;
+  players: Player[];
+  intro: boolean;
+  onIntroDone: () => void;
+  send: ReturnType<typeof usePartyRoom>['send'];
+}) {
+  const ref = useRef<HTMLButtonElement>(null);
+  const [stage, setStage] = useState<'hidden' | 'center' | 'corner'>(intro ? 'hidden' : 'corner');
+  const [offset, setOffset] = useState({ x: 0, y: 0 });
+  const [picking, setPicking] = useState(false);
+
+  useLayoutEffect(() => {
+    if (!intro) return;
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      setStage('corner');
+      onIntroDone();
+      return;
+    }
+    const r = ref.current!.getBoundingClientRect();
+    setOffset({
+      x: window.innerWidth / 2 - (r.left + r.width / 2),
+      y: window.innerHeight / 2 - (r.top + r.height / 2),
+    });
+    const show = requestAnimationFrame(() => requestAnimationFrame(() => setStage('center')));
+    const move = setTimeout(() => setStage('corner'), INTRO_HOLD_MS);
+    const done = setTimeout(onIntroDone, INTRO_HOLD_MS + INTRO_MOVE_MS - 150);
+    return () => {
+      cancelAnimationFrame(show);
+      clearTimeout(move);
+      clearTimeout(done);
+    };
+    // runs once, on the screen's first paint
+  }, []);
+
+  const away = stage !== 'corner';
+  return (
+    <>
+      <button
+        ref={ref}
+        onClick={() => setPicking((v) => !v)}
+        aria-label="Change character"
+        aria-expanded={picking}
+        className="fixed top-[max(1rem,env(safe-area-inset-top))] right-4 z-30 flex items-center gap-2 rounded-full border border-[var(--home-border)] bg-[color-mix(in_srgb,var(--home-surface)_85%,transparent)] py-1 pr-1 pl-3.5 text-[var(--home-text)]"
+        style={{
+          transform: away ? `translate(${offset.x}px, ${offset.y}px) scale(2.2)` : undefined,
+          opacity: stage === 'hidden' ? 0 : 1,
+          transition:
+            stage === 'center'
+              ? 'opacity 450ms ease'
+              : `transform ${INTRO_MOVE_MS}ms cubic-bezier(0.3, 0.7, 0.2, 1), opacity 450ms ease`,
+          borderColor: away ? 'transparent' : undefined,
+          backgroundColor: away ? 'transparent' : undefined,
+        }}
+      >
+        <span className="max-w-[9rem] truncate font-[family-name:var(--font-display)] text-base font-bold">
+          {me.name}
+        </span>
+        <PlayerToken avatar={me.avatar} host={me.isHost} className="h-9 w-9" />
+      </button>
+      {picking && (
+        <>
+          <div className="fixed inset-0 z-30" onClick={() => setPicking(false)} />
+          <div className="fixed top-[calc(max(1rem,env(safe-area-inset-top))+3.5rem)] right-4 z-40 w-[min(20rem,calc(100vw-2rem))] rounded-2xl border border-[var(--home-border)] bg-[var(--home-surface)] p-4 shadow-[0_16px_40px_rgba(0,0,0,0.55)]">
+            <p className="mb-3 text-xs tracking-widest text-[var(--home-text-muted)] uppercase">
+              Pick your character
+            </p>
+            <AvatarPicker
+              value={me.avatar}
+              taken={players.map((p) => p.avatar)}
+              onPick={(a) => {
+                if (a !== me.avatar) send({ type: 'avatar', avatar: a });
+                setPicking(false);
+              }}
+            />
+          </div>
+        </>
+      )}
+    </>
   );
 }
 
@@ -156,7 +280,8 @@ export default function JoinPage({
   const [avatar, setAvatar] = useState<string>(AVATARS[0]);
   const [hello, setHello] = useState<HelloMessage | null>(null);
   const [tutorialGameId, setTutorialGameId] = useState<string | null>(null);
-  const [pickingAvatar, setPickingAvatar] = useState(false);
+  // True from a fresh join until your character has settled into the corner.
+  const [intro, setIntro] = useState(false);
   // null until this phone's saved seat (if any) has been looked up.
   const [key, setKey] = useState<string | null>(null);
   const { state, you, gameView, lastError, reconnecting, kicked, send } =
@@ -175,6 +300,7 @@ export default function JoinPage({
       const devName = query.get('name')?.trim();
       if (devName) {
         setName(devName);
+        setIntro(true);
         setHello({ type: 'hello', role: 'player', name: devName, avatar: randomAvatar });
       }
       return;
@@ -228,6 +354,7 @@ export default function JoinPage({
 
   const join = () => {
     if (!name.trim()) return;
+    setIntro(true);
     setHello({
       type: 'hello',
       role: 'player',
@@ -262,7 +389,7 @@ export default function JoinPage({
 
   // Before the saved seat is checked, or while rejoining it, show the quiet
   // loader rather than flashing the join form or a half-built screen.
-  if (key === null || (hello?.role === 'player' && hello.token && !me && !kicked)) return <LoadingScreen />;
+  if (key === null || (hello?.role === 'player' && !me && !kicked && !lastError)) return <LoadingScreen />;
 
   if (!hello || !me) {
     return (
@@ -280,7 +407,8 @@ export default function JoinPage({
           onKeyDown={(e) => e.key === 'Enter' && join()}
           placeholder="Your name"
           maxLength={20}
-          autoFocus
+          // not inside the dev bench's frames, where focusing would scroll the bench
+          autoFocus={typeof window !== 'undefined' && window.self === window.top}
           className="mb-5 w-full max-w-xs rounded-xl border border-[var(--home-border)] bg-[var(--home-surface)] px-5 py-4 text-center text-xl text-[var(--home-text)] placeholder-[var(--home-text-muted)] focus:border-[var(--home-magic)] focus:outline-none"
         />
         <p className="mb-2 text-xs tracking-widest text-[var(--home-text-muted)] uppercase">
@@ -374,88 +502,51 @@ export default function JoinPage({
 
   const players = state?.players ?? [];
   const picked = state?.games.find((g) => g.id === state.pickedGameId) ?? null;
+  const hostName = players.find((p) => p.isHost)?.name ?? 'The host';
   const tutorial =
     tutorialGameId &&
     GAME_UI[tutorialGameId]?.Tutorial &&
     (() => {
       const Tutorial = GAME_UI[tutorialGameId].Tutorial!;
-      return <Tutorial onClose={() => setTutorialGameId(null)} />;
+      return <Tutorial theme="home" onClose={() => setTutorialGameId(null)} />;
     })();
 
-  if (me.isHost && picked) {
-    return (
-      <div className="flex min-h-screen flex-col items-center justify-center px-8 py-10 text-[var(--home-text)]">
-        <HomeWallBackdrop />
-        {reconnecting && <p className="mb-4 text-sm text-yellow-400">Reconnecting…</p>}
-        {lastError && <p className="mb-4 text-sm text-red-400">{lastError}</p>}
-        <GamePage
-          game={picked}
-          players={players}
-          onBack={() => send({ type: 'pick', gameId: null })}
-          onStart={() => send({ type: 'start', gameId: picked.id })}
-          onRules={() => setTutorialGameId(picked.id)}
-        />
-        {tutorial}
-      </div>
-    );
-  }
-
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center px-8 py-10 text-[var(--home-text)]">
+    <div className="flex min-h-screen flex-col items-center justify-center px-8 pt-20 pb-10 text-[var(--home-text)]">
       <HomeWallBackdrop />
-      {reconnecting && (
-        <p className="mb-4 text-sm text-yellow-400">Reconnecting…</p>
-      )}
-      {lastError && <p className="mb-4 text-sm text-red-400">{lastError}</p>}
-      <button
-        onClick={() => setPickingAvatar((v) => !v)}
-        aria-label="Change character"
-        className="animate-arrive"
-      >
-        <PlayerToken avatar={me.avatar} host={me.isHost} className="h-24 w-24" />
-      </button>
-      <p className="mt-2 font-serif text-4xl font-bold">{me.name}</p>
-      <p className="mt-2 text-[var(--home-text-muted)]">
-        You&apos;re home
-        {me.isHost && <span className="text-[var(--home-magic)]"> · host</span>}
-      </p>
-      {pickingAvatar ? (
-        <div className="mt-6 flex w-full flex-col items-center">
-          <AvatarPicker
-            value={me.avatar}
-            taken={players.map((p) => p.avatar)}
-            onPick={(a) => {
-              if (a !== me.avatar) send({ type: 'avatar', avatar: a });
-              setPickingAvatar(false);
-            }}
-          />
-        </div>
-      ) : (
+      {me.isHost && picked && !intro && (
         <button
-          onClick={() => setPickingAvatar(true)}
-          className="mt-1 text-sm text-[var(--home-text-muted)] underline underline-offset-2"
+          onClick={() => send({ type: 'pick', gameId: null })}
+          className="animate-home-fade fixed top-[max(1rem,env(safe-area-inset-top))] left-4 z-20 flex h-11 items-center px-2 text-[var(--home-text-muted)] hover:text-[var(--home-text)]"
         >
-          Change character
+          ‹ Home
         </button>
       )}
+      <MeChip me={me} players={players} intro={intro} onIntroDone={() => setIntro(false)} send={send} />
 
-      {me.isHost ? (
-        <div className="mt-10 w-full max-w-xs">
-          <GameList games={state?.games ?? []} onPick={(gameId) => send({ type: 'pick', gameId })} />
-        </div>
-      ) : picked ? (
-        <UpNext
-          game={picked}
-          hostName={players.find((p) => p.isHost)?.name ?? 'The host'}
-          onRules={() => setTutorialGameId(picked.id)}
-        />
-      ) : (
-        <p className="mt-10 text-[var(--home-text-muted)]">
-          Waiting for the host to choose a game…
-        </p>
-      )}
-
-      {me.isHost && <GuestList players={players} me={me} send={send} />}
+      <div className={`flex w-full flex-col items-center ${intro ? 'invisible' : 'animate-home-fade'}`}>
+        {reconnecting && <p className="mb-4 text-sm text-yellow-400">Reconnecting…</p>}
+        {lastError && <p className="mb-4 text-sm text-red-400">{lastError}</p>}
+        {picked ? (
+          <GameStage
+            game={picked}
+            players={players}
+            host={me.isHost}
+            hostName={hostName}
+            onStart={() => send({ type: 'start', gameId: picked.id })}
+            onRules={() => setTutorialGameId(picked.id)}
+          />
+        ) : me.isHost ? (
+          <>
+            <GameList games={state?.games ?? []} onPick={(gameId) => send({ type: 'pick', gameId })} />
+            <GuestList players={players} me={me} send={send} />
+          </>
+        ) : (
+          <p className="text-center text-lg text-[var(--home-text-muted)]">
+            You&apos;re home. Waiting for {hostName} to choose a game…
+          </p>
+        )}
+      </div>
 
       {tutorial}
     </div>

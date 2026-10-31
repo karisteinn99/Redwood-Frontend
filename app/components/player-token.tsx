@@ -52,10 +52,6 @@ const TOKENS: Record<Avatar, { color: string; d: string }> = {
     color: '#c98a4b',
     d: '<path d="M7 31 q25 -28 50 0 q-6 -5 -12.5 0 q-6 -5 -12.5 0 q-6 -5 -12.5 0 q-6 -5 -12.5 0 Z"/><path d="M32 30 V49 q0 7 -7 7 q-5 0 -5 -5" fill="none" stroke="INK" stroke-width="4" stroke-linecap="round"/><rect x="30.5" y="5" width="3" height="5" rx="1"/>',
   },
-  'skeleton-key': {
-    color: '#7f9be6',
-    d: '<circle cx="15" cy="32" r="10" fill="none" stroke="INK" stroke-width="5"/><rect x="24" y="29.5" width="34" height="5" rx="2"/><rect x="47" y="34" width="4" height="9" rx="1"/><rect x="53" y="34" width="4" height="6" rx="1"/><circle cx="15" cy="32" r="3"/>',
-  },
 };
 
 export const tokenColor = (avatar: string) => (isAvatar(avatar) ? TOKENS[avatar].color : '#a99d84');
@@ -108,9 +104,9 @@ export function PlayerToken({
       )}
       {host && (
         <g transform="translate(70 70)">
-          <circle r="15" fill="#c9a35c" stroke={cut} strokeWidth="3" />
-          <circle cx="-4" cy="0" r="4.2" fill="none" stroke="#241a0e" strokeWidth="2.6" />
-          <path d="M0 0 H8 M5 0 V4 M8 0 V3" stroke="#241a0e" strokeWidth="2.6" strokeLinecap="round" />
+          <circle r="15" fill="#f6f2ea" stroke={cut} strokeWidth="3" />
+          <circle cx="-4" cy="0" r="4.2" fill="none" stroke={cut} strokeWidth="2.6" />
+          <path d="M0 0 H8 M5 0 V4 M8 0 V3" stroke={cut} strokeWidth="2.6" strokeLinecap="round" />
         </g>
       )}
     </svg>

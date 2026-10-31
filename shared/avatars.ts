@@ -14,8 +14,8 @@ export const AVATARS = [
   'teacup',
   'houseplant',
   'umbrella',
-  'skeleton-key',
 ] as const;
+// (The key is not a character: it's the host's badge on their token.)
 
 export type Avatar = (typeof AVATARS)[number];
 
@@ -31,7 +31,6 @@ export const AVATAR_NAMES: Record<Avatar, string> = {
   teacup: 'the teacup',
   houseplant: 'the houseplant',
   umbrella: 'the umbrella',
-  'skeleton-key': 'the skeleton key',
 };
 
 export const isAvatar = (value: unknown): value is Avatar =>
