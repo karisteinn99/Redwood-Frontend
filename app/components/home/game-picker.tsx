@@ -51,60 +51,88 @@ function GameTitle({ gameId, name }: { gameId: string; name: string }) {
   );
 }
 
-export function GameList({ games, onPick }: { games: GameInfo[]; onPick: (gameId: string) => void }) {
+export function GameList({
+  games,
+  title,
+  upNextId = null,
+  onOpen,
+}: {
+  games: GameInfo[];
+  title: string;
+  upNextId?: string | null;
+  onOpen: (gameId: string) => void;
+}) {
   return (
     <div className="w-full max-w-xs">
-      <p className="mb-2 text-xs tracking-widest text-[var(--home-text-muted)] uppercase">Pick a game</p>
+      <p className="mb-2 text-xs tracking-widest text-[var(--home-text-muted)] uppercase">{title}</p>
       <ul className="space-y-3">
-        {games.map((g) => (
-          <li key={g.id}>
-            <button
-              onClick={() => onPick(g.id)}
-              className="flex w-full items-center gap-4 rounded-2xl border border-[var(--home-border)] bg-[color-mix(in_srgb,var(--home-surface)_88%,transparent)] p-3 text-left transition hover:border-[var(--home-brass)]"
-            >
-              <GamePainting gameId={g.id} className="h-16 w-14 shrink-0 rounded-t-full rounded-b-md" />
-              <span className="flex-1">
-                <span className="block text-xl font-bold">{g.name}</span>
-                <span className="text-sm text-[var(--home-text-muted)]">{range(g)}</span>
-              </span>
-              <span className="text-2xl text-[var(--home-text-muted)]" aria-hidden="true">
-                ›
-              </span>
-            </button>
-          </li>
-        ))}
+        {games.map((g) => {
+          const upNext = g.id === upNextId;
+          return (
+            <li key={g.id}>
+              <button
+                onClick={() => onOpen(g.id)}
+                className={`flex w-full items-center gap-4 rounded-2xl border bg-[color-mix(in_srgb,var(--home-surface)_88%,transparent)] p-3 text-left transition hover:border-[var(--home-brass)] ${
+                  upNext ? 'border-[var(--home-gold)] shadow-[0_0_18px_var(--home-gold-glow)]' : 'border-[var(--home-border)]'
+                }`}
+              >
+                <GamePainting gameId={g.id} className="h-16 w-14 shrink-0 rounded-t-full rounded-b-md" />
+                <span className="flex-1">
+                  <span className="block text-xl font-bold">{g.name}</span>
+                  <span className={`text-sm ${upNext ? 'text-[var(--home-gold)]' : 'text-[var(--home-text-muted)]'}`}>
+                    {upNext ? 'Up next' : range(g)}
+                  </span>
+                </span>
+                <span className="text-2xl text-[var(--home-text-muted)]" aria-hidden="true">
+                  ›
+                </span>
+              </button>
+            </li>
+          );
+        })}
       </ul>
     </div>
   );
 }
 
-// The picked game's page. The host and every guest see the same layout, so
-// the painting, the title and the main button sit at the same height on
-// every phone: the host's main button is Start, with How to play under it;
-// a guest's is How to play, with an empty slot under it.
+// One game's page on a phone. Everyone browses games on their own phone;
+// only the host's "Play" puts one up next on the TV, and then Start begins
+// it. Every mode shares one layout, so the painting, the title and the main
+// button sit at the same height on every phone.
+//   host-browse: Play {game}, How to play under it
+//   host-upnext: Start {game}, How to play under it
+//   guest-browse / guest-upnext: How to play, an empty slot under it
+export type StageMode = 'host-browse' | 'host-upnext' | 'guest-browse' | 'guest-upnext';
+
+const outlineButton =
+  'w-full rounded-xl border-2 border-[var(--home-brass)] bg-[color-mix(in_srgb,var(--home-surface)_88%,transparent)] py-[14px] text-xl font-bold text-[var(--home-gold)] transition hover:border-[var(--home-gold)]';
+
 export function GameStage({
   game,
   players,
-  host,
+  mode,
   hostName,
+  onPlay,
   onStart,
   onRules,
 }: {
   game: GameInfo;
   players: Player[];
-  host: boolean;
+  mode: StageMode;
   hostName: string;
+  onPlay: () => void;
   onStart: () => void;
   onRules: () => void;
 }) {
   // The server deals in whoever is connected when the game starts.
-  const playing = players.filter((p) => p.connected);
-  const line = playersLine(game, playing.length);
+  const line = playersLine(game, players.filter((p) => p.connected).length);
   const hasRules = !!GAME_UI[game.id]?.Tutorial;
+  const host = mode === 'host-browse' || mode === 'host-upnext';
+  const upNext = mode === 'host-upnext' || mode === 'guest-upnext';
   return (
     <div className="flex w-full max-w-xs flex-col items-center text-center">
       <p
-        className={`mb-2 self-start text-xs tracking-widest text-[var(--home-text-muted)] uppercase ${host ? 'invisible' : ''}`}
+        className={`mb-2 self-start text-xs tracking-widest text-[var(--home-gold)] uppercase ${upNext ? '' : 'invisible'}`}
       >
         Up next
       </p>
@@ -117,35 +145,53 @@ export function GameStage({
         <p className={`text-lg ${line.problem ? 'text-[var(--home-ember)]' : 'text-[var(--home-text-muted)]'}`}>
           {line.text}
         </p>
-        {!host && <p className="mt-1 text-[var(--home-text-muted)]">{hostName} is about to start it</p>}
+        {mode === 'guest-upnext' && <p className="mt-1 text-[var(--home-text-muted)]">{hostName} is about to start it</p>}
+        {mode === 'host-upnext' && <p className="mt-1 text-[var(--home-text-muted)]">It&apos;s up on the TV</p>}
       </div>
-      {host ? (
+      {mode === 'host-browse' && (
+        <button onClick={onPlay} className="home-gold-fill mt-4 w-full rounded-xl py-4 text-xl font-bold transition hover:brightness-110">
+          Play {game.name}
+        </button>
+      )}
+      {mode === 'host-upnext' && (
         <button
           onClick={onStart}
           disabled={line.problem}
-          className="mt-4 w-full home-gold-fill rounded-xl py-4 text-xl font-bold transition hover:brightness-110 disabled:bg-[var(--home-surface)] disabled:text-[var(--home-text-muted)] disabled:hover:brightness-100"
+          className="home-gold-fill animate-home-fade mt-4 w-full rounded-xl py-4 text-xl font-bold transition hover:brightness-110"
         >
           Start {game.name}
         </button>
-      ) : (
-        <button
-          onClick={onRules}
-          disabled={!hasRules}
-          className="mt-4 w-full rounded-xl border-2 border-[var(--home-brass)] bg-[color-mix(in_srgb,var(--home-surface)_88%,transparent)] py-[14px] text-xl font-bold text-[var(--home-gold)] transition hover:border-[var(--home-gold)] disabled:invisible"
-        >
+      )}
+      {!host && (
+        <button onClick={onRules} disabled={!hasRules} className={`mt-4 ${outlineButton} disabled:invisible`}>
           How to play
         </button>
       )}
       {host && hasRules ? (
-        <button
-          onClick={onRules}
-          className="mt-3 w-full rounded-xl border-2 border-[var(--home-brass)] bg-[color-mix(in_srgb,var(--home-surface)_88%,transparent)] py-[14px] text-xl font-bold text-[var(--home-gold)] transition hover:border-[var(--home-gold)]"
-        >
+        <button onClick={onRules} className={`mt-3 ${outlineButton}`}>
           How to play
         </button>
       ) : (
         <div className="mt-3 h-[60px]" aria-hidden="true" />
       )}
     </div>
+  );
+}
+
+// A guest's heads-up that the host put a game up next, pinned under the top
+// bar while they look at something else. Tapping it opens that game.
+export function UpNextToast({ game, onOpen }: { game: GameInfo; onOpen: () => void }) {
+  return (
+    <button
+      onClick={onOpen}
+      className="animate-toast-down fixed inset-x-3 top-[calc(max(1rem,env(safe-area-inset-top))+3.5rem)] z-20 mx-auto flex max-w-sm items-center gap-3 rounded-2xl border border-[var(--home-gold)] bg-[var(--home-surface)] p-2.5 pr-4 text-left shadow-[0_12px_30px_rgba(0,0,0,0.5)]"
+    >
+      <GamePainting gameId={game.id} className="h-12 w-10 shrink-0 rounded-t-full rounded-b-md" />
+      <span className="flex-1 leading-tight">
+        <span className="block text-xs tracking-widest text-[var(--home-text-muted)] uppercase">Up next</span>
+        <span className="text-lg font-bold">{game.name}</span>
+      </span>
+      <span className="font-bold text-[var(--home-gold)]">See it ›</span>
+    </button>
   );
 }

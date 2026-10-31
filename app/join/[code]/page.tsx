@@ -5,7 +5,7 @@ import { use, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { normalizeRoomCode } from '@/lib/room-code';
 import { usePartyRoom } from '@/lib/use-party-room';
 import { AVATARS, AVATAR_NAMES, isAvatar } from '@shared/avatars';
-import { GameList, GameStage } from '@/app/components/home/game-picker';
+import { GameList, GameStage, UpNextToast } from '@/app/components/home/game-picker';
 import { HomeWallBackdrop } from '@/app/components/home/home-wall-backdrop';
 import { LoadingScreen } from '@/app/components/home/loading-screen';
 import { PlayerToken } from '@/app/components/player-token';
@@ -302,6 +302,8 @@ export default function JoinPage({
   const [intro, setIntro] = useState(false);
   // Set when this phone left the room on its own, from the character menu.
   const [left, setLeft] = useState(false);
+  // The game this phone has open at Home (everyone browses on their own).
+  const [viewing, setViewing] = useState<string | null>(null);
   // null until this phone's saved seat (if any) has been looked up.
   const [key, setKey] = useState<string | null>(null);
   const { state, you, gameView, lastError, reconnecting, kicked, send } =
@@ -552,7 +554,11 @@ export default function JoinPage({
   }
 
   const players = state?.players ?? [];
-  const picked = state?.games.find((g) => g.id === state.pickedGameId) ?? null;
+  const games = state?.games ?? [];
+  const picked = games.find((g) => g.id === state?.pickedGameId) ?? null;
+  // The host always sits on the game that's up next; guests choose freely.
+  const openId = me.isHost && picked ? picked.id : viewing;
+  const open = games.find((g) => g.id === openId) ?? null;
   const hostName = players.find((p) => p.isHost)?.name ?? 'The host';
   const tutorial =
     tutorialGameId &&
@@ -561,16 +567,21 @@ export default function JoinPage({
       const Tutorial = GAME_UI[tutorialGameId].Tutorial!;
       return <Tutorial theme="home" onClose={() => setTutorialGameId(null)} />;
     })();
+  const back = () => {
+    // Going back from the host's up-next page takes the game off the TV.
+    if (me.isHost && picked) send({ type: 'pick', gameId: null });
+    setViewing(null);
+  };
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center px-8 pt-20 pb-10 text-[var(--home-text)]">
       <HomeWallBackdrop />
-      {me.isHost && picked && !intro && (
+      {open && !intro && (
         <button
-          onClick={() => send({ type: 'pick', gameId: null })}
+          onClick={back}
           className="animate-home-fade fixed top-[max(1rem,env(safe-area-inset-top))] left-4 z-20 flex h-11 items-center px-2 text-[var(--home-text-muted)] hover:text-[var(--home-text)]"
         >
-          ‹ Home
+          ‹ Games
         </button>
       )}
       <MeChip
@@ -582,28 +593,44 @@ export default function JoinPage({
         onLeave={leave}
         send={send}
       />
+      {!me.isHost && picked && open?.id !== picked.id && !intro && (
+        <UpNextToast key={picked.id} game={picked} onOpen={() => setViewing(picked.id)} />
+      )}
 
       <div className={`flex w-full flex-col items-center ${intro ? 'invisible' : 'animate-home-fade'}`}>
         {reconnecting && <p className="mb-4 text-sm text-yellow-400">Reconnecting…</p>}
         {lastError && <p className="mb-4 text-sm text-red-400">{lastError}</p>}
-        {picked ? (
+        {open ? (
           <GameStage
-            game={picked}
+            key={open.id}
+            game={open}
             players={players}
-            host={me.isHost}
+            mode={
+              me.isHost
+                ? picked
+                  ? 'host-upnext'
+                  : 'host-browse'
+                : picked?.id === open.id
+                  ? 'guest-upnext'
+                  : 'guest-browse'
+            }
             hostName={hostName}
-            onStart={() => send({ type: 'start', gameId: picked.id })}
-            onRules={() => setTutorialGameId(picked.id)}
+            onPlay={() => send({ type: 'pick', gameId: open.id })}
+            onStart={() => send({ type: 'start', gameId: open.id })}
+            onRules={() => setTutorialGameId(open.id)}
           />
         ) : me.isHost ? (
           <>
-            <GameList games={state?.games ?? []} onPick={(gameId) => send({ type: 'pick', gameId })} />
+            <GameList games={games} title="Pick a game" onOpen={setViewing} />
             <GuestList players={players} me={me} send={send} />
           </>
         ) : (
-          <p className="text-center text-lg text-[var(--home-text-muted)]">
-            You&apos;re home. Waiting for {hostName} to choose a game…
-          </p>
+          <>
+            <p className="mb-8 text-center text-[var(--home-text-muted)]">
+              {hostName} picks the game. Have a look around.
+            </p>
+            <GameList games={games} title="Games" upNextId={picked?.id} onOpen={setViewing} />
+          </>
         )}
       </div>
 
