@@ -83,7 +83,7 @@ export default function Home() {
             <button
               onClick={create}
               disabled={creating}
-              className="mt-6 w-full rounded-xl bg-[var(--home-magic)] py-4 text-xl font-bold text-[var(--home-bg)] transition hover:brightness-110 disabled:opacity-60"
+              className="mt-6 w-full home-gold-fill rounded-xl py-4 text-xl font-bold transition hover:brightness-110 disabled:opacity-60"
             >
               {creating ? 'Opening the house…' : 'Create game'}
             </button>
@@ -116,7 +116,7 @@ export default function Home() {
                 autoComplete="off"
                 spellCheck={false}
                 maxLength={12}
-                className="w-full rounded-xl border border-[var(--home-border)] bg-[var(--home-surface)] px-5 py-4 text-center font-[family-name:var(--font-display)] text-2xl font-bold tracking-widest text-[var(--home-magic)] placeholder-[var(--home-text-muted)] placeholder:font-[family-name:var(--font-read)] placeholder:text-xl placeholder:font-normal placeholder:tracking-normal focus:border-[var(--home-magic)] focus:outline-none"
+                className="w-full rounded-xl border border-[var(--home-border)] bg-[var(--home-surface)] px-5 py-4 text-center font-[family-name:var(--font-display)] text-2xl font-bold tracking-widest text-[var(--home-gold)] placeholder-[var(--home-text-muted)] placeholder:font-[family-name:var(--font-read)] placeholder:text-xl placeholder:font-normal placeholder:tracking-normal focus:border-[var(--home-gold)] focus:outline-none"
               />
               {error && (
                 <p className="text-sm text-[var(--home-ember)]">{error}</p>
@@ -124,7 +124,7 @@ export default function Home() {
               <button
                 type="submit"
                 disabled={checking || !code.trim()}
-                className="w-full rounded-xl border-2 border-[var(--home-magic)] py-4 text-xl font-bold text-[var(--home-magic)] transition hover:bg-[var(--home-magic)] hover:text-[var(--home-bg)] disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:text-[var(--home-magic)]"
+                className="w-full rounded-xl border-2 border-[var(--home-brass)] bg-[color-mix(in_srgb,var(--home-surface)_88%,transparent)] py-4 text-xl font-bold text-[var(--home-gold)] transition hover:border-[var(--home-gold)] disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:text-[var(--home-gold)]"
               >
                 {checking ? 'Knocking…' : 'Join game'}
               </button>
