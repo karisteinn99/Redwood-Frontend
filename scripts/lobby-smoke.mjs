@@ -2,13 +2,15 @@
 // `wrangler dev` server: avatars, kick, host transfer, the late-join overlay,
 // mid-game joiners, and (optionally) pruning of disconnected seats.
 //
-// Usage: node scripts/lobby-smoke.mjs [port] [pruneGraceMs]
+// Usage: node scripts/lobby-smoke.mjs [port] [pruneGraceMs] [awayGraceMs]
 // The prune checks only run when pruneGraceMs is given, and the server must
-// have been started with the same value, e.g.
-//   npx wrangler dev --port 1999 --var PRUNE_GRACE_MS:1500
-//   node scripts/lobby-smoke.mjs 1999 1500
+// have been started with the same values (the away grace must be shorter
+// than the prune grace), e.g.
+//   npx wrangler dev --port 1999 --var PRUNE_GRACE_MS:1500 --var AWAY_GRACE_MS:500
+//   node scripts/lobby-smoke.mjs 1999 1500 500
 const PORT = process.argv[2] ?? '1999';
 const PRUNE_GRACE_MS = process.argv[3] ? Number(process.argv[3]) : null;
+const AWAY_GRACE_MS = Number(process.argv[4] ?? 5000); // the server's AWAY_GRACE_MS
 const CODE = `LOBBY-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`;
 const url = `ws://127.0.0.1:${PORT}/parties/main/${CODE}`;
 
@@ -95,7 +97,7 @@ assert(
 );
 const benToken = b.log.you.token;
 b.ws.close();
-await wait();
+await wait(AWAY_GRACE_MS + 400);
 assert(
   player('Anna')?.isHost,
   'host falls back to earliest joiner while Ben is away'

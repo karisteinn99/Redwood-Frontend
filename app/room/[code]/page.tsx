@@ -26,7 +26,9 @@ export default function TvPage({ params }: { params: Promise<{ code: string }> }
     Object.fromEntries(ROOM_DOORS.map((d) => [d.gameId, createRef<HTMLDivElement>()])),
   ).current;
   const doorPos = useRef<Record<string, { x: number; y: number }>>({});
-  const wasLobby = useRef(true);
+  // null until the first state arrives, so reloading the TV mid-game doesn't
+  // replay the door portal.
+  const wasLobby = useRef<boolean | null>(null);
 
   const [portal, setPortal] = useState<{ x: number; y: number } | null>(null);
   const [portalOpen, setPortalOpen] = useState(false);
@@ -56,9 +58,10 @@ export default function TvPage({ params }: { params: Promise<{ code: string }> }
   // A room's door glows in the lobby; when the host starts that game, play
   // a portal-open transition growing from that door instead of a hard cut.
   useEffect(() => {
-    const gameId = state?.gameId;
-    const startingRoom = wasLobby.current && state?.phase === 'playing' && !!gameId && gameId in doorRefs;
-    wasLobby.current = state?.phase !== 'playing';
+    if (!state) return;
+    const gameId = state.gameId;
+    const startingRoom = wasLobby.current === true && state.phase === 'playing' && !!gameId && gameId in doorRefs;
+    wasLobby.current = state.phase !== 'playing';
     if (!startingRoom || !gameId) return;
 
     const pos = doorPos.current[gameId] ?? { x: window.innerWidth / 2, y: window.innerHeight / 2 };
@@ -90,6 +93,10 @@ export default function TvPage({ params }: { params: Promise<{ code: string }> }
   // defined inside this one would be a new type every render and remount the
   // game screen (resetting e.g. Liar's Dice's reveal animation) each time.
   function renderScreen() {
+    // Until the room answers, a plain dark screen: no empty lobby flashing up
+    // on a TV that's actually mid-game.
+    if (!state) return <div className="h-screen w-screen bg-[var(--home-bg)]" />;
+
     // Mid-transition: Home stays as the base layer, the game grows into view
     // from the door through an expanding clip-path.
     if (portal) {
@@ -116,7 +123,7 @@ export default function TvPage({ params }: { params: Promise<{ code: string }> }
           {Tv && gameView ? (
             <Tv view={gameView.view} players={players} />
           ) : (
-            <p className="text-2xl">Loading…</p>
+            <div className="h-full w-full bg-[var(--home-bg)]" />
           )}
         </div>
       );

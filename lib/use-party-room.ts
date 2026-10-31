@@ -29,6 +29,10 @@ export function usePartyRoom(code: string, hello: HelloMessage | null) {
   const [gameView, setGameView] = useState<GameView | null>(null);
   const [lastError, setLastError] = useState<string | null>(null);
   const [connected, setConnected] = useState(false);
+  // Only true once a connection that had been up has stayed down for a
+  // moment, so the first connect and a quick refresh never flash a warning.
+  const [reconnecting, setReconnecting] = useState(false);
+  const wasConnected = useRef(false);
   const [kicked, setKicked] = useState(false);
   const socketRef = useRef<PartySocket | null>(null);
   const helloRef = useRef(hello);
@@ -46,6 +50,7 @@ export function usePartyRoom(code: string, hello: HelloMessage | null) {
     socketRef.current = socket;
 
     socket.addEventListener('open', () => {
+      wasConnected.current = true;
       setConnected(true);
       socket.send(JSON.stringify(helloRef.current));
     });
@@ -76,10 +81,16 @@ export function usePartyRoom(code: string, hello: HelloMessage | null) {
     return () => socket.close();
   }, [code, active]);
 
+  useEffect(() => {
+    if (connected || !wasConnected.current) return setReconnecting(false);
+    const t = setTimeout(() => setReconnecting(true), 2000);
+    return () => clearTimeout(t);
+  }, [connected]);
+
   const send = useCallback((msg: ClientMessage) => {
     if (msg.type !== 'hello') setLastError(null); // a new attempt supersedes any stale error
     socketRef.current?.send(JSON.stringify(msg));
   }, []);
 
-  return { state, you, gameView, lastError, connected, kicked, send };
+  return { state, you, gameView, lastError, connected, reconnecting, kicked, send };
 }

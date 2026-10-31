@@ -11,6 +11,7 @@ const PORT = process.argv[2] ?? '1999';
 // Persistence means a room's state outlives a single test run, so each run
 // needs a fresh, effectively-unique code — a 0-9 suffix collides too easily.
 const CODE = `SMOKE-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`;
+const AWAY_GRACE_MS = 5000; // party/index.ts DEFAULT_AWAY_GRACE_MS
 const url = `ws://127.0.0.1:${PORT}/parties/main/${CODE}`;
 
 let failed = false;
@@ -86,10 +87,24 @@ await wait();
 assert(a.log.error !== null, 'illegal action returns error to actor');
 assert(JSON.stringify(tv.log.view.view) === before, 'illegal action does not change state');
 
-// reconnect with token gets its private view immediately
+// a quick refresh (drop and straight back) never moves host, even briefly
 const token = a.log.you.token;
+let hostFlickered = false;
+tv.ws.addEventListener('message', (e) => {
+  const m = JSON.parse(e.data);
+  if (m.type === 'state' && !m.players.find((p) => p.name === 'Anna')?.isHost) hostFlickered = true;
+});
 a.ws.close();
+await wait(300);
+const aQuick = await open();
+send(aQuick, { type: 'hello', role: 'player', name: 'Anna', token });
 await wait();
+assert(!hostFlickered, 'a quick refresh keeps host and never shows anyone else as host');
+assert(tv.log.state?.players.find((p) => p.name === 'Anna')?.connected, 'a quick refresh never shows the player as away');
+
+// once the away grace has passed, host moves on; reconnecting reclaims it
+aQuick.ws.close();
+await wait(AWAY_GRACE_MS + 1000);
 assert(
   tv.log.state?.players.find((p) => p.name === 'Ben')?.isHost === true,
   "host moves to Ben (earliest still-connected) while Anna is disconnected"

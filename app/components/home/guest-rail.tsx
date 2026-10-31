@@ -121,8 +121,8 @@ function GuestRow({
     <div
       ref={row}
       className={`home-row ${fresh ? 'home-row-fresh' : ''} ${entering ? 'home-row-enter' : ''} ${
-        player.isHost ? 'mb-3.5' : ''
-      } ${player.connected ? '' : 'opacity-40'}`}
+        player.connected ? '' : 'opacity-40'
+      }`}
       style={{ '--fresh': tokenColor(player.avatar) } as React.CSSProperties}
     >
       <PlayerToken avatar={player.avatar} host={player.isHost} className="h-[78px] w-[78px]" />
