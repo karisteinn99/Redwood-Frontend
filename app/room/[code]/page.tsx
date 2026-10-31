@@ -43,6 +43,18 @@ export default function TvPage({ params }: { params: Promise<{ code: string }> }
       .catch(() => {});
   }, []);
 
+  // F toggles fullscreen anywhere on the TV, at Home and in every game.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== 'f' && e.key !== 'F') return;
+      if (e.metaKey || e.ctrlKey || e.altKey || e.repeat) return;
+      if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
+      else document.documentElement.requestFullscreen().catch(() => {});
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
+
   // Keep every door's last known screen position fresh while it's on
   // screen, so it's still available the instant a game starts and Home
   // unmounts.
