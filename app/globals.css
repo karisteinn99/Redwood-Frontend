@@ -399,3 +399,14 @@ body {
   color: var(--home-text-muted);
   box-shadow: none;
 }
+
+/* a guest's Up next heads-up sliding down from the top bar */
+@keyframes toastDown {
+  from {
+    opacity: 0;
+    transform: translateY(-24px);
+  }
+}
+.animate-toast-down {
+  animation: toastDown 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
