@@ -103,7 +103,13 @@ export default function TvPage({ params }: { params: Promise<{ code: string }> }
       const Tv = state?.gameId ? GAME_UI[state.gameId]?.Tv : undefined;
       return (
         <div className="relative h-screen w-screen overflow-hidden">
-          <HomeTv code={code} joinUrl={joinUrl} players={players} doorRefs={doorRefs} />
+          <HomeTv
+            code={code}
+            joinUrl={joinUrl}
+            players={players}
+            doorRefs={doorRefs}
+            picked={state.games.find((g) => g.id === state.gameId) ?? null}
+          />
           <div
             className="absolute inset-0 text-white transition-[clip-path] duration-[1150ms] ease-[cubic-bezier(0.22,0.7,0.2,1)]"
             style={{ clipPath: `circle(${portalOpen ? '150%' : '0px'} at ${portal.x}px ${portal.y}px)` }}
@@ -131,7 +137,13 @@ export default function TvPage({ params }: { params: Promise<{ code: string }> }
 
     return (
       <div className="h-screen w-screen">
-        <HomeTv code={code} joinUrl={joinUrl} players={players} doorRefs={doorRefs} />
+        <HomeTv
+          code={code}
+          joinUrl={joinUrl}
+          players={players}
+          doorRefs={doorRefs}
+          picked={state.games.find((g) => g.id === state.pickedGameId) ?? null}
+        />
       </div>
     );
   }

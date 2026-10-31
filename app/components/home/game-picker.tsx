@@ -88,86 +88,84 @@ export function GameList({ games, onPick }: { games: GameInfo[]; onPick: (gameId
   );
 }
 
-export function GamePage({
+// The picked game's page. The host and every guest see the same layout, so
+// the painting, the title and the main button sit at the same height on
+// every phone: the host's main button is Start, with How to play under it;
+// a guest's is How to play, with an empty slot under it.
+export function GameStage({
   game,
   players,
-  onBack,
+  host,
+  hostName,
   onStart,
   onRules,
 }: {
   game: GameInfo;
   players: Player[];
-  onBack: () => void;
+  host: boolean;
+  hostName: string;
   onStart: () => void;
   onRules: () => void;
 }) {
   // The server deals in whoever is connected when the game starts.
   const playing = players.filter((p) => p.connected);
   const problem = countProblem(game, playing.length);
+  const hasRules = !!GAME_UI[game.id]?.Tutorial;
   return (
     <div className="flex w-full max-w-xs flex-col items-center text-center">
-      <button
-        onClick={onBack}
-        className="mb-4 self-start py-2 text-[var(--home-text-muted)] hover:text-[var(--home-text)]"
+      <p
+        className={`mb-2 self-start text-xs tracking-widest text-[var(--home-text-muted)] uppercase ${host ? 'invisible' : ''}`}
       >
-        ‹ Home
-      </button>
+        Up next
+      </p>
       <GamePainting gameId={game.id} className="h-36 w-full rounded-2xl" />
       <div className="mt-5">
         <GameTitle gameId={game.id} name={game.name} />
       </div>
       {GAME_UI[game.id]?.blurb && <p className="mt-1 text-[var(--home-text-muted)]">{GAME_UI[game.id].blurb}</p>}
-      <p className="mt-6 text-[var(--home-text-muted)]">
-        <span className="font-[family-name:var(--font-display)] text-2xl font-bold text-[var(--home-brass)] italic">
-          {playing.length}
-        </span>{' '}
-        of {range(game)} home
-      </p>
-      <div className="mt-2 flex flex-wrap justify-center gap-1.5">
-        {playing.map((p) => (
-          <PlayerToken key={p.id} avatar={p.avatar} className="h-9 w-9" />
-        ))}
+      <div className="mt-6 h-[118px]">
+        {host ? (
+          <p className="flex h-8 items-center justify-center gap-1.5 text-[var(--home-text-muted)]">
+            <span className="font-[family-name:var(--font-display)] text-2xl font-bold text-[var(--home-brass)] italic">
+              {playing.length}
+            </span>
+            of {range(game)} home
+          </p>
+        ) : (
+          <p className="flex h-8 items-center justify-center text-[var(--home-text-muted)]">{hostName} is about to start it</p>
+        )}
+        <div className="mt-2 flex flex-wrap justify-center gap-1.5">
+          {playing.map((p) => (
+            <PlayerToken key={p.id} avatar={p.avatar} className="h-9 w-9" />
+          ))}
+        </div>
       </div>
-      {GAME_UI[game.id]?.Tutorial && (
-        <button onClick={onRules} className="mt-5 text-sm text-[var(--home-text-muted)] underline underline-offset-2">
-          How to play
+      {host ? (
+        <button
+          onClick={onStart}
+          disabled={!!problem}
+          className="mt-4 w-full rounded-xl bg-[var(--home-magic)] py-4 text-xl font-bold text-[var(--home-bg)] transition hover:brightness-110 disabled:bg-[var(--home-surface)] disabled:text-[var(--home-text-muted)] disabled:hover:brightness-100"
+        >
+          {problem ?? `Start ${game.name}`}
         </button>
-      )}
-      <button
-        onClick={onStart}
-        disabled={!!problem}
-        className="mt-8 w-full rounded-xl bg-[var(--home-magic)] py-4 text-xl font-bold text-[var(--home-bg)] transition hover:brightness-110 disabled:bg-[var(--home-surface)] disabled:text-[var(--home-text-muted)] disabled:hover:brightness-100"
-      >
-        {problem ?? `Start ${game.name}`}
-      </button>
-    </div>
-  );
-}
-
-export function UpNext({
-  game,
-  hostName,
-  onRules,
-}: {
-  game: GameInfo;
-  hostName: string;
-  onRules: () => void;
-}) {
-  return (
-    <div className="mt-10 flex w-full max-w-xs flex-col items-center text-center">
-      <p className="mb-2 self-start text-xs tracking-widest text-[var(--home-text-muted)] uppercase">Up next</p>
-      <GamePainting gameId={game.id} className="h-28 w-full rounded-2xl" />
-      <div className="mt-4">
-        <GameTitle gameId={game.id} name={game.name} />
-      </div>
-      <p className="mt-1 text-[var(--home-text-muted)]">{hostName} is about to start it</p>
-      {GAME_UI[game.id]?.Tutorial && (
+      ) : (
         <button
           onClick={onRules}
-          className="mt-6 w-full rounded-xl border border-[var(--home-magic)] py-3 text-lg font-bold text-[var(--home-magic)]"
+          disabled={!hasRules}
+          className="mt-4 w-full rounded-xl border-2 border-[var(--home-magic)] py-[14px] text-xl font-bold text-[var(--home-magic)] transition hover:bg-[var(--home-magic)] hover:text-[var(--home-bg)] disabled:invisible"
         >
           How to play
         </button>
+      )}
+      {host && hasRules ? (
+        <button
+          onClick={onRules}
+          className="mt-3 w-full rounded-xl border-2 border-[var(--home-magic)] py-[14px] text-xl font-bold text-[var(--home-magic)] transition hover:bg-[var(--home-magic)] hover:text-[var(--home-bg)]"
+        >
+          How to play
+        </button>
+      ) : (
+        <div className="mt-3 h-[60px]" aria-hidden="true" />
       )}
     </div>
   );

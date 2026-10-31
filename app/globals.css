@@ -368,3 +368,22 @@ body {
 .animate-loading-dots > span {
   animation: loadingDot 1.2s ease-in-out infinite;
 }
+
+/* Tailwind v4 dropped the pointer cursor on buttons; bring it back. */
+@layer base {
+  button:not(:disabled),
+  [role='button']:not([aria-disabled='true']) {
+    cursor: pointer;
+  }
+}
+
+/* a Home screen's content arriving, e.g. after your character settles in the corner */
+@keyframes homeFade {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+.animate-home-fade {
+  animation: homeFade 0.45s ease both;
+}
