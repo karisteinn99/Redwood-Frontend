@@ -184,6 +184,7 @@ export function UpNextToast({ game, onOpen }: { game: GameInfo; onOpen: () => vo
   return (
     <button
       onClick={onOpen}
+      aria-label={`Up next: ${game.name}. Open it`}
       className="animate-toast-down fixed inset-x-3 top-[calc(max(1rem,env(safe-area-inset-top))+3.5rem)] z-20 mx-auto flex max-w-sm items-center gap-3 rounded-2xl border border-[var(--home-gold)] bg-[var(--home-surface)] p-2.5 pr-4 text-left shadow-[0_12px_30px_rgba(0,0,0,0.5)]"
     >
       <GamePainting gameId={game.id} className="h-12 w-10 shrink-0 rounded-t-full rounded-b-md" />
@@ -191,7 +192,9 @@ export function UpNextToast({ game, onOpen }: { game: GameInfo; onOpen: () => vo
         <span className="block text-xs tracking-widest text-[var(--home-text-muted)] uppercase">Up next</span>
         <span className="text-lg font-bold">{game.name}</span>
       </span>
-      <span className="font-bold text-[var(--home-gold)]">See it ›</span>
+      <svg viewBox="0 0 24 24" aria-hidden="true" className="h-6 w-6 shrink-0 text-[var(--home-gold)]">
+        <path d="M9 5l7 7-7 7" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
     </button>
   );
 }
