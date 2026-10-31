@@ -22,8 +22,8 @@
   --home-border: #4f4636;
   --home-text: #ede6d6;
   --home-text-muted: #a99d84;
-  --home-magic: #b9a6f5;
-  --home-magic-glow: rgba(185, 166, 245, 0.5);
+  --home-gold: #dcbd7c; /* the accent: buttons, links, focus (was purple until 2026-10-31) */
+  --home-gold-glow: rgba(220, 189, 124, 0.45);
   --home-ember: #d97a3f;
   --home-garden: #5c8a5f;
   --home-garden-deep: #2f4a34;
@@ -33,9 +33,9 @@
 /* Home TV (the Home TV design review; see the design system) ---------------- */
 :root {
   --home-brass: #b8955a;
-  --home-code-top: #e2d8f7;
-  --home-code-mid: #c3b1ec;
-  --home-code-low: #9a85d3;
+  --home-code-top: #f6e8c6;
+  --home-code-mid: #dfc07f;
+  --home-code-low: #b38c4f;
 }
 
 /* the wall: 172px planks in four tones, each with a dark seam and a catch-light
@@ -55,7 +55,7 @@
   color: transparent;
 }
 .home-code-num {
-  background: linear-gradient(180deg, #f6f1ff 0%, #ddd0fa 50%, #b9a4ec 100%);
+  background: linear-gradient(180deg, #fff8e6 0%, #f0dca8 50%, #d2ad66 100%);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
@@ -386,4 +386,16 @@ body {
 }
 .animate-home-fade {
   animation: homeFade 0.45s ease both;
+}
+
+/* Home's main button: brushed gold with dark ink; a disabled one goes quiet */
+.home-gold-fill {
+  background: linear-gradient(180deg, #ead39f 0%, #dcbd7c 45%, #c49f5a 100%);
+  color: #2a2016;
+  box-shadow: inset 0 1px 0 rgba(255, 245, 220, 0.5), 0 6px 18px rgba(0, 0, 0, 0.35);
+}
+.home-gold-fill:disabled {
+  background: var(--home-surface);
+  color: var(--home-text-muted);
+  box-shadow: none;
 }

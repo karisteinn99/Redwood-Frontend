@@ -67,7 +67,7 @@ function AvatarPicker({
             aria-label={`Play as ${AVATAR_NAMES[a]}`}
             className={`flex aspect-square items-center justify-center rounded-xl border p-2 transition disabled:opacity-20 ${
               a === value
-                ? 'border-[var(--home-magic)] bg-[var(--home-surface)] [box-shadow:0_0_12px_var(--home-magic-glow)]'
+                ? 'border-[var(--home-gold)] bg-[var(--home-surface)] [box-shadow:0_0_12px_var(--home-gold-glow)]'
                 : 'border-[var(--home-border)]'
             }`}
           >
@@ -185,17 +185,22 @@ const INTRO_MOVE_MS = 600;
 function MeChip({
   me,
   players,
+  code,
   intro,
   onIntroDone,
+  onLeave,
   send,
 }: {
   me: Player;
+  code: string;
   players: Player[];
   intro: boolean;
   onIntroDone: () => void;
+  onLeave: () => void;
   send: ReturnType<typeof usePartyRoom>['send'];
 }) {
   const ref = useRef<HTMLButtonElement>(null);
+  const [confirmLeave, setConfirmLeave] = useState(false);
   const [stage, setStage] = useState<'hidden' | 'center' | 'corner'>(intro ? 'hidden' : 'corner');
   const [offset, setOffset] = useState({ x: 0, y: 0 });
   const [picking, setPicking] = useState(false);
@@ -228,8 +233,11 @@ function MeChip({
     <>
       <button
         ref={ref}
-        onClick={() => setPicking((v) => !v)}
-        aria-label="Change character"
+        onClick={() => {
+          setConfirmLeave(false);
+          setPicking((v) => !v);
+        }}
+        aria-label="Change character or leave"
         aria-expanded={picking}
         className="fixed top-[max(1rem,env(safe-area-inset-top))] right-4 z-30 flex items-center gap-2 rounded-full border border-[var(--home-border)] bg-[color-mix(in_srgb,var(--home-surface)_85%,transparent)] py-1 pr-1 pl-3.5 text-[var(--home-text)]"
         style={{
@@ -263,6 +271,16 @@ function MeChip({
                 setPicking(false);
               }}
             />
+            <button
+              onClick={() => (confirmLeave ? onLeave() : setConfirmLeave(true))}
+              className={`mt-4 w-full rounded-xl border py-3 font-bold transition ${
+                confirmLeave
+                  ? 'border-[var(--home-ember)] bg-[var(--home-ember)] text-[var(--home-bg)]'
+                  : 'border-[var(--home-border)] text-[var(--home-ember)] hover:border-[var(--home-ember)]'
+              }`}
+            >
+              {confirmLeave ? 'Tap again to leave' : `Leave ${code}`}
+            </button>
           </div>
         </>
       )}
@@ -282,6 +300,8 @@ export default function JoinPage({
   const [tutorialGameId, setTutorialGameId] = useState<string | null>(null);
   // True from a fresh join until your character has settled into the corner.
   const [intro, setIntro] = useState(false);
+  // Set when this phone left the room on its own, from the character menu.
+  const [left, setLeft] = useState(false);
   // null until this phone's saved seat (if any) has been looked up.
   const [key, setKey] = useState<string | null>(null);
   const { state, you, gameView, lastError, reconnecting, kicked, send } =
@@ -352,6 +372,15 @@ export default function JoinPage({
     if (kicked && key) forget(key);
   }, [key, kicked]);
 
+  const leave = () => {
+    send({ type: 'leave' });
+    if (key) forget(key);
+    setLeft(true);
+    setIntro(false);
+    // after the leave goes out; clearing hello closes the connection
+    setTimeout(() => setHello(null), 150);
+  };
+
   const join = () => {
     if (!name.trim()) return;
     setIntro(true);
@@ -363,6 +392,28 @@ export default function JoinPage({
       avatar,
     });
   };
+
+  if (left) {
+    return (
+      <div className="flex h-screen flex-col items-center justify-center px-8 text-center text-[var(--home-text)]">
+        <HomeWallBackdrop />
+        <p className="font-[family-name:var(--font-display)] text-3xl font-bold">You&apos;ve left {code}</p>
+        <p className="mt-3 text-[var(--home-text-muted)]">See you next time.</p>
+        <button
+          onClick={() => {
+            setLeft(false);
+            setName('');
+          }}
+          className="home-gold-fill mt-10 w-full max-w-xs rounded-xl py-4 text-xl font-bold transition hover:brightness-110"
+        >
+          Join again
+        </button>
+        <a href="/" className="mt-4 py-2 text-[var(--home-text-muted)] underline underline-offset-4">
+          Back to the start
+        </a>
+      </div>
+    );
+  }
 
   // `hello` check: after "Knock again" clears it, the join form shows even
   // though `kicked` only resets once a new connection opens.
@@ -378,8 +429,8 @@ export default function JoinPage({
         </p>
         <button
           onClick={() => setHello(null)}
-          className="mt-10 w-full max-w-xs rounded-xl py-4 text-xl font-bold text-[var(--home-bg)] transition hover:brightness-110"
-          style={{ background: 'var(--home-magic)' }}
+          className="home-gold-fill mt-10 w-full max-w-xs rounded-xl py-4 text-xl font-bold transition hover:brightness-110"
+          
         >
           Knock again
         </button>
@@ -398,7 +449,7 @@ export default function JoinPage({
         <p className="mb-2 text-sm tracking-widest text-[var(--home-text-muted)] uppercase">
           Come inside
         </p>
-        <p className="mb-8 font-serif text-5xl font-bold tracking-widest text-[var(--home-magic)]">
+        <p className="mb-8 font-serif text-5xl font-bold tracking-widest text-[var(--home-gold)]">
           {code}
         </p>
         <input
@@ -409,7 +460,7 @@ export default function JoinPage({
           maxLength={20}
           // not inside the dev bench's frames, where focusing would scroll the bench
           autoFocus={typeof window !== 'undefined' && window.self === window.top}
-          className="mb-5 w-full max-w-xs rounded-xl border border-[var(--home-border)] bg-[var(--home-surface)] px-5 py-4 text-center text-xl text-[var(--home-text)] placeholder-[var(--home-text-muted)] focus:border-[var(--home-magic)] focus:outline-none"
+          className="mb-5 w-full max-w-xs rounded-xl border border-[var(--home-border)] bg-[var(--home-surface)] px-5 py-4 text-center text-xl text-[var(--home-text)] placeholder-[var(--home-text-muted)] focus:border-[var(--home-gold)] focus:outline-none"
         />
         <p className="mb-2 text-xs tracking-widest text-[var(--home-text-muted)] uppercase">
           Pick your character
@@ -418,8 +469,8 @@ export default function JoinPage({
         <button
           onClick={join}
           disabled={!name.trim() || !!hello}
-          className="mt-6 w-full max-w-xs rounded-xl py-4 text-xl font-bold text-[var(--home-bg)] transition hover:brightness-110 disabled:opacity-40"
-          style={{ background: 'var(--home-magic)' }}
+          className="home-gold-fill mt-6 w-full max-w-xs rounded-xl py-4 text-xl font-bold transition hover:brightness-110"
+          
         >
           {hello ? 'Joining…' : 'Join'}
         </button>
@@ -522,7 +573,15 @@ export default function JoinPage({
           ‹ Home
         </button>
       )}
-      <MeChip me={me} players={players} intro={intro} onIntroDone={() => setIntro(false)} send={send} />
+      <MeChip
+        me={me}
+        players={players}
+        code={code}
+        intro={intro}
+        onIntroDone={() => setIntro(false)}
+        onLeave={leave}
+        send={send}
+      />
 
       <div className={`flex w-full flex-col items-center ${intro ? 'invisible' : 'animate-home-fade'}`}>
         {reconnecting && <p className="mb-4 text-sm text-yellow-400">Reconnecting…</p>}

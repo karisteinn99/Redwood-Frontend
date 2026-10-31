@@ -4,6 +4,7 @@ import { useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useSta
 
 import { ROOM_DOORS, type RoomDoor } from '@/games/rooms';
 import { GAME_UI } from '@/games/ui';
+import { playersLine } from '@/lib/players-line';
 import type { GameInfo } from '@shared/game';
 import type { Player } from '@shared/party-types';
 
@@ -26,16 +27,6 @@ const MOVE_MS = 950;
 const QR_TO = { x: 1144, y: 846, scale: 120 / 360 };
 const WINDOW_TO = { x: 14, y: 176, scale: 1.875 };
 const windowFrom = (i: number) => ({ x: -14 + i * 340, y: 646 });
-
-// "2–8 players", or what's keeping the game from starting.
-function playersLine(game: GameInfo, count: number) {
-  if (count < game.minPlayers) {
-    const n = game.minPlayers - count;
-    return `Needs ${n} more player${n === 1 ? '' : 's'}`;
-  }
-  if (count > game.maxPlayers) return `${count} players at home. The maximum is ${game.maxPlayers}.`;
-  return game.minPlayers === game.maxPlayers ? `${game.minPlayers} players` : `${game.minPlayers}–${game.maxPlayers} players`;
-}
 
 // A transition that waits for the moves when appearing, and goes first when
 // disappearing, so nothing overlaps mid-flight.
@@ -355,7 +346,7 @@ function UpNextCopy({ game, count, visible }: { game: GameInfo; count: number; v
         className="absolute w-[330px] text-center text-[30px] text-[var(--home-text-muted)]"
         style={{ left: WINDOW_TO.x, top: WINDOW_TO.y + 274 * WINDOW_TO.scale + 26, ...fade(shown, 1250) }}
       >
-        {playersLine(game, count)}
+        {playersLine(game, count).text}
       </p>
       <div className="absolute top-[146px] left-[444px] w-[700px]">
         <p

@@ -2,10 +2,10 @@ import qrcode from 'qrcode-generator';
 import { useMemo } from 'react';
 
 const INK = '#211d18';
-const EYE = '#2a2452';
+const EYE = '#2b2219';
 const PAPER = '#f8f1e3';
 const QUIET = 4;
-const GLASS = '#b9a6f5'; // Home's magic purple
+const GLASS = '#dcbd7c'; // Home's gold
 
 // Home's QR (see the design system's JoinCode): round dot modules, rounded
 // finder eyes and a small arched window in the centre, like the room

@@ -218,6 +218,10 @@ export class HomeRoom {
       this.setAvatar(ws, seat, msg.avatar);
       return;
     }
+    if (msg.type === 'leave') {
+      this.leave(ws, seat);
+      return;
+    }
     if (seat.id !== this.hostId) return;
 
     if (msg.type === 'start') {
@@ -320,6 +324,22 @@ export class HomeRoom {
     this.seats.delete(seatId);
     this.liveSockets.delete(seatId);
     if (this.preferredHostId === seatId) this.preferredHostId = null;
+  }
+
+  // A player leaving on their own, from their phone. Like being removed, it
+  // only happens at Home: mid-game the seat is part of the game's state.
+  private leave(ws: PartyWebSocket, seat: Seat) {
+    if (this.phase !== 'lobby') return this.fail(ws, 'You can leave once everyone is back home');
+    this.removeSeat(seat.id);
+    ws.serializeAttachment(null);
+    try {
+      ws.close(1000, 'Left');
+    } catch {
+      // already closing
+    }
+    this.ensureHost();
+    this.broadcastState();
+    this.persist();
   }
 
   private kick(sender: PartyWebSocket, host: Seat, targetId: string) {

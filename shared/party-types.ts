@@ -34,6 +34,8 @@ export type ClientMessage =
   | { type: 'action'; action: unknown }
   | { type: 'home' }
   | { type: 'avatar'; avatar: string }
+  // a player leaving the room on their own (Home only)
+  | { type: 'leave' }
   // Host-only from here down.
   | { type: 'pick'; gameId: string | null }
   | { type: 'kick'; playerId: string }

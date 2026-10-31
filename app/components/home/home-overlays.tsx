@@ -63,7 +63,7 @@ export function ArrivalToasts({ players }: { players: Player[] | undefined }) {
         >
           <PlayerToken avatar={a.avatar} className="h-[1.6em] w-[1.6em]" />
           <span>
-            <span className="font-bold text-[var(--home-magic)]">{a.name}</span>{' '}
+            <span className="font-bold text-[var(--home-gold)]">{a.name}</span>{' '}
             is home
           </span>
         </div>
@@ -92,7 +92,7 @@ export function LateJoinOverlay({
       </div>
       <p className="text-[clamp(0.6rem,0.9vw,0.7rem)] text-[var(--home-text-muted)]">
         gohomegames.com/join/
-        <span className="block text-[clamp(0.9rem,1.5vw,1.15rem)] font-bold tracking-widest text-[var(--home-magic)]">
+        <span className="block text-[clamp(0.9rem,1.5vw,1.15rem)] font-bold tracking-widest text-[var(--home-gold)]">
           {code}
         </span>
       </p>

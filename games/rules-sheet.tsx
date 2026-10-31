@@ -19,7 +19,7 @@ const HOME: RulesPalette = {
   border: 'var(--home-brass)',
   text: 'var(--home-text)',
   muted: 'var(--home-text-muted)',
-  accent: 'var(--home-magic)',
+  accent: 'var(--home-gold)',
   accentInk: 'var(--home-bg)',
   danger: 'var(--home-ember)',
 };
@@ -86,12 +86,6 @@ export function RulesSheet({
         </div>
         <div className="relative space-y-5 overflow-y-auto px-6 pb-6 text-[var(--r-muted)] [&_section>p:first-child]:font-medium [&_section>p:first-child]:text-[var(--r-text)]">
           {children}
-          <button
-            onClick={onClose}
-            className="w-full rounded-xl bg-[var(--r-accent)] py-3 text-lg font-bold text-[var(--r-accent-ink)] transition hover:brightness-110"
-          >
-            Got it
-          </button>
         </div>
       </div>
     </div>
