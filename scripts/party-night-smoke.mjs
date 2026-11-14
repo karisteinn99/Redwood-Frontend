@@ -54,18 +54,20 @@ assert(tv.log.view?.view.stage === 'intro', 'opens on a minigame intro');
 
 act(b, { type: 'go' });
 await wait();
-assert(b.log.error?.message.includes('host'), 'only the host can press Go');
+assert(b.log.error?.message.includes('host'), 'only the host can start without everyone');
+act(a, { type: 'ready' });
+act(b, { type: 'ready' });
+await wait();
+assert(tv.log.view.view.stage === 'intro' && tv.log.view.view.ready.length === 2, 'waits until everyone is ready');
+act(c, { type: 'ready' });
+await wait();
+assert(tv.log.view.view.stage === 'play', 'starts once everyone is ready');
 
 let checkedSecrets = false;
 for (let guard = 0; guard < 60 && tv.log.view.view.stage !== 'over'; guard++) {
   const v = tv.log.view.view;
-  if (v.stage === 'intro') {
-    act(a, { type: 'go' });
-    await wait();
-    continue;
-  }
-  if (v.stage === 'results') {
-    act(a, { type: 'next' });
+  if (v.stage === 'intro' || v.stage === 'results') {
+    for (const p of players) act(p, { type: 'ready' });
     await wait();
     continue;
   }
@@ -81,7 +83,7 @@ for (let guard = 0; guard < 60 && tv.log.view.view.stage !== 'over'; guard++) {
   }
   if (m.kind === 'versus') {
     if (!checkedSecrets) {
-      assert(!('answer' in m.question), 'Last One Standing: the answer is never sent before everyone picks');
+      assert(!('answer' in m.question), 'Knockout: the answer is never sent before everyone picks');
       checkedSecrets = true;
     }
     for (const [i, p] of players.entries()) {

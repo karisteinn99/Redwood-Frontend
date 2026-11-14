@@ -2,18 +2,19 @@ import { useEffect, useRef, useState } from 'react';
 
 import type { Player } from '@shared/party-types';
 
-import { HomeWallBackdrop } from '@/app/components/home/home-wall-backdrop';
 import { PlayerToken } from '@/app/components/player-token';
 
 import { TAPS, tapCost, FALSE_START_MS, type MiniView, type PartyAction, type PartyView } from './definition';
 import { MINI_INFO, placeLabel } from './minis';
+import { PartyBackdrop } from './tv';
 
-// Party night, phone side. Between minigames the phone sits on Home's wood
-// wall; during one it takes the minigame's window colour.
+// Party night, phone side. Between minigames the phone shows Party night's
+// stage (never Home's wood, so it's always clear you're in the game); during
+// one it takes the minigame's window colour.
 
 type Send = (a: PartyAction) => void;
 
-const card = 'w-full max-w-xs rounded-3xl bg-[color-mix(in_srgb,var(--home-bg)_93%,transparent)] p-6 text-center';
+const card = 'w-full max-w-xs rounded-3xl bg-[color-mix(in_srgb,var(--party-bg)_93%,transparent)] p-6 text-center';
 const goldButton = 'home-gold-fill w-full max-w-xs rounded-2xl py-4 text-xl font-bold transition hover:brightness-110';
 
 function Colour({ color }: { color: string }) {
@@ -123,7 +124,7 @@ function Versus({ m, yourId, send }: { m: Extract<MiniView, { kind: 'versus' }>;
     const wasWrong = r.wrongIds.includes(yourId);
     return (
       <div className="text-center text-white">
-        <p className="text-4xl font-bold">{r.savedAll ? 'Everyone missed' : wasWrong ? 'Out!' : 'Right!'}</p>
+        <p className="text-4xl font-bold">{r.savedAll ? 'Everyone missed' : wasWrong ? 'Knocked out!' : 'Right!'}</p>
         <p className="mt-3 text-lg opacity-90">
           {right.label}: {right.value}
         </p>
@@ -134,8 +135,8 @@ function Versus({ m, yourId, send }: { m: Extract<MiniView, { kind: 'versus' }>;
   if (out) {
     return (
       <div className="text-center text-white">
-        <p className="text-3xl font-bold">You’re out</p>
-        <p className="mt-2 opacity-85">Out on question {m.outAt[yourId] + 1}. Watch the TV.</p>
+        <p className="text-3xl font-bold">Knocked out</p>
+        <p className="mt-2 opacity-85">On question {m.outAt[yourId] + 1}. Watch the TV.</p>
       </div>
     );
   }
@@ -143,7 +144,7 @@ function Versus({ m, yourId, send }: { m: Extract<MiniView, { kind: 'versus' }>;
   return (
     <div className="flex w-full max-w-xs flex-col items-center text-center text-white">
       <p className="text-sm font-semibold tracking-[0.15em] uppercase opacity-85">
-        Question {m.index + 1} · {m.alive.length} standing
+        Question {m.index + 1} · {m.alive.length} still in
       </p>
       <p className="mt-2 text-2xl leading-snug font-bold">{m.question.prompt}</p>
       <div className="mt-8 grid w-full gap-4">
@@ -235,11 +236,11 @@ export function PartyNightPhone({ view, players, send }: { view: PartyView; play
 
   const placing = view.result?.placings.find((p) => p.id === yourId);
   return (
-    <div className="flex w-full flex-col items-center gap-5 font-[family-name:var(--font-read)] text-[var(--home-text)]">
-      <HomeWallBackdrop />
-      {view.stage === 'intro' && (
-        <div className={card}>
-          <p className="text-sm text-[var(--home-text-muted)]">Minigame {view.round}</p>
+    <div className="flex w-full flex-col items-center gap-5 font-[family-name:var(--font-read)] text-[var(--party-text)]">
+      <PartyBackdrop />
+      {(view.stage === 'intro' || view.stage === 'results') && (
+        <div className={`${card} order-2`}>
+          <p className="text-sm text-[var(--party-text-muted)]">{view.stage === 'results' ? 'Up next · ' : ''}Minigame {view.round}</p>
           <p className="mt-1 font-[family-name:var(--font-display)] text-3xl font-bold">{info.name}</p>
           <p className="mt-3 text-lg leading-snug">{info.phone}</p>
           <span className="mx-auto mt-5 block h-2 w-16 rounded-full" style={{ background: info.color }} />
@@ -247,14 +248,14 @@ export function PartyNightPhone({ view, players, send }: { view: PartyView; play
       )}
       {(view.stage === 'results' || view.stage === 'over') && placing && (
         <div className={card}>
-          <p className="text-sm text-[var(--home-text-muted)]">{view.result && MINI_INFO[view.result.mini].name}</p>
+          <p className="text-sm text-[var(--party-text-muted)]">{view.result && MINI_INFO[view.result.mini].name}</p>
           <p className="mt-1 font-[family-name:var(--font-display)] text-6xl font-bold text-[var(--home-gold)]">
             {placeLabel(placing.place)}
           </p>
           <p className="mt-2 text-xl font-semibold">
             {placing.gain ? `+${placing.gain} ${placing.gain === 1 ? 'step' : 'steps'}` : 'No steps this time'}
           </p>
-          <p className="mt-1 text-[var(--home-text-muted)]">{placing.detail}</p>
+          <p className="mt-1 text-[var(--party-text-muted)]">{placing.detail}</p>
         </div>
       )}
       {view.stage === 'over' ? (
@@ -269,22 +270,27 @@ export function PartyNightPhone({ view, players, send }: { view: PartyView; play
           </p>
         </div>
       ) : (
-        <p className="rounded-full bg-[color-mix(in_srgb,var(--home-bg)_85%,transparent)] px-5 py-2 text-lg">
+        <p className="rounded-full bg-[color-mix(in_srgb,var(--party-bg)_85%,transparent)] px-5 py-2 text-lg">
           Step <b>{myStep}</b> of {view.goal}
         </p>
       )}
-      {isHost && view.stage === 'intro' && (
-        <button onClick={() => send({ type: 'go' })} className={goldButton}>
-          Go
-        </button>
-      )}
-      {isHost && view.stage === 'results' && (
-        <button onClick={() => send({ type: 'next' })} className={goldButton}>
-          Next minigame
-        </button>
-      )}
-      {!isHost && view.stage !== 'over' && (
-        <p className="text-[var(--home-text-muted)]">{view.stage === 'intro' ? 'Get ready…' : 'Watch the TV'}</p>
+      {view.stage !== 'over' && (
+        <div className="order-3 flex w-full flex-col items-center gap-3">
+          {view.ready.includes(yourId) ? (
+            <p className="rounded-2xl border border-[var(--home-gold)] px-6 py-4 text-xl font-bold text-[var(--home-gold)]">
+              Ready · {view.ready.length} of {view.order.length}
+            </p>
+          ) : (
+            <button onClick={() => send({ type: 'ready' })} className={goldButton}>
+              Ready
+            </button>
+          )}
+          {isHost && view.ready.length < view.order.length && (
+            <button onClick={() => send({ type: 'go' })} className="text-sm text-[var(--party-text-muted)] underline underline-offset-4">
+              Start without everyone
+            </button>
+          )}
+        </div>
       )}
     </div>
   );

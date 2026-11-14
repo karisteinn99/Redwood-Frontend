@@ -328,6 +328,17 @@ body {
   --dock-card-red: #c8463a;
 }
 
+/* Party night's own room: a dark stage under spotlights, so it never reads as
+   Home's wood. Gold stays the accent (buttons, trophy); colour comes only from
+   the players and each minigame's window. */
+:root {
+  --party-bg: #0e1121;
+  --party-surface: #1a1f36;
+  --party-border: #363d63;
+  --party-text: #eef0f8;
+  --party-text-muted: #a3a9c8;
+}
+
 @keyframes ripple {
   0%, 100% { transform: translateX(0) scaleX(1); opacity: 0.25; }
   50% { transform: translateX(14px) scaleX(1.15); opacity: 0.55; }

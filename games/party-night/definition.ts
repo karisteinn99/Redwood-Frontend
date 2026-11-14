@@ -4,8 +4,9 @@ import { PICKS, VERSUS, type PickPrompt, type VersusQuestion } from './content';
 
 // Party night: short minigames back to back. Each one ranks the players, and
 // the ranking climbs them up a 12-step tower (1st 3 steps, 2nd 2, 3rd 1).
-// First to the top wins. The host moves things along between minigames and
-// can stop waiting for someone who wandered off.
+// First to the top wins. Everyone readies up on their phone before each
+// minigame (the results screen already shows the next one); the host can
+// start without stragglers, or stop waiting for someone mid-game.
 
 export type MiniId = 'quick-tap' | 'versus' | 'same-pick';
 export const MINIS: MiniId[] = ['quick-tap', 'versus', 'same-pick'];
@@ -59,15 +60,18 @@ export interface PartyState {
   steps: Record<string, number>;
   round: number;
   bag: MiniId[];
+  // intro is only before the first minigame; after that, results doubles as
+  // the next minigame's intro and `mini` already holds the next one.
   stage: 'intro' | 'play' | 'results' | 'over';
   mini: Mini;
+  ready: string[];
   result: { mini: MiniId; placings: Placing[] } | null;
   winnerIds: string[];
 }
 
 export type PartyAction =
+  | { type: 'ready' }
   | { type: 'go' }
-  | { type: 'next' }
   | { type: 'skip' }
   | { type: 'tap'; attempt: number; ms: number }
   | { type: 'pick'; choice: 'a' | 'b' }
@@ -106,6 +110,7 @@ export interface PartyView {
   goal: number;
   round: number;
   stage: PartyState['stage'];
+  ready: string[];
   miniId: MiniId;
   mini: MiniView;
   result: PartyState['result'];
@@ -151,11 +156,17 @@ function newMini(id: MiniId, order: string[], random: () => number): Mini {
 }
 
 // Sorted best-first by `key`; equal keys share a place (1, 1, 3).
-function rank(order: string[], key: (id: string) => number, detail: (id: string) => string): Placing[] {
+// `earned` false means a place but no steps (matched nothing, all false starts).
+function rank(
+  order: string[],
+  key: (id: string) => number,
+  detail: (id: string) => string,
+  earned: (id: string) => boolean = () => true
+): Placing[] {
   const sorted = [...order].sort((x, y) => key(x) - key(y));
   return sorted.map((id) => {
     const place = 1 + sorted.filter((o) => key(o) < key(id)).length;
-    return { id, place, gain: STEP_GAIN[place - 1] ?? 0, detail: detail(id) };
+    return { id, place, gain: earned(id) ? (STEP_GAIN[place - 1] ?? 0) : 0, detail: detail(id) };
   });
 }
 
@@ -171,16 +182,21 @@ function placings(mini: Mini, order: string[]): Placing[] {
     return rank(order, total, (id) => {
       const best = bestTap(mini.taps[id]);
       return best === null ? 'All false starts' : `Best ${(best / 1000).toFixed(3)} s`;
-    });
+    }, (id) => bestTap(mini.taps[id]) !== null);
   }
   if (mini.kind === 'versus') {
     // Still standing beats out late, which beats out early.
     const survived = (id: string) => (mini.alive.includes(id) ? -1000 : -mini.outAt[id]);
     return rank(order, survived, (id) =>
-      mini.alive.includes(id) ? 'Still standing' : `Out on question ${mini.outAt[id] + 1}`
+      mini.alive.includes(id) ? 'Won it' : `Knocked out on question ${mini.outAt[id] + 1}`
     );
   }
-  return rank(order, (id) => -mini.score[id], (id) => `Matched ${mini.score[id]} of ${mini.prompts.length}`);
+  return rank(
+    order,
+    (id) => -mini.score[id],
+    (id) => `Matched ${mini.score[id]} of ${mini.prompts.length}`,
+    (id) => mini.score[id] > 0
+  );
 }
 
 function miniDone(mini: Mini, order: string[]): boolean {
@@ -224,20 +240,21 @@ function resolvePick(m: SamePick, order: string[]): SamePick {
   };
 }
 
-function finishIfDone(state: PartyState): PartyState {
+function finishIfDone(state: PartyState, random: () => number): PartyState {
   if (!miniDone(state.mini, state.order)) return state;
   const list = placings(state.mini, state.order);
   const steps = { ...state.steps };
   for (const p of list) steps[p.id] = Math.min(GOAL, steps[p.id] + p.gain);
   const top = Math.max(...state.order.map((id) => steps[id]));
   const over = top >= GOAL;
-  return {
+  const done: PartyState = {
     ...state,
     steps,
     stage: over ? 'over' : 'results',
     result: { mini: state.mini.kind, placings: list },
     winnerIds: over ? state.order.filter((id) => steps[id] === top) : [],
   };
+  return over ? done : nextMini(done, random);
 }
 
 function nextMini(state: PartyState, random: () => number): PartyState {
@@ -247,7 +264,7 @@ function nextMini(state: PartyState, random: () => number): PartyState {
     if (bag[0] === state.mini.kind) bag.push(bag.shift()!);
   }
   const [id, ...rest] = bag;
-  return { ...state, bag: rest, round: state.round + 1, stage: 'intro', mini: newMini(id, state.order, random), result: null };
+  return { ...state, bag: rest, round: state.round + 1, ready: [], mini: newMini(id, state.order, random) };
 }
 
 export const partyNightGame = defineGame<PartyState, PartyAction, PartyView>({
@@ -266,6 +283,7 @@ export const partyNightGame = defineGame<PartyState, PartyAction, PartyView>({
       bag,
       stage: 'intro',
       mini: newMini(first, order, ctx.random),
+      ready: [],
       result: null,
       winnerIds: [],
     };
@@ -275,15 +293,18 @@ export const partyNightGame = defineGame<PartyState, PartyAction, PartyView>({
     if (!state.order.includes(playerId)) return { error: 'You’re not in this party.' };
     const isHost = ctx.hostId === playerId;
 
-    if (action.type === 'go') {
-      if (!isHost) return { error: 'Only the host can start the minigame.' };
-      if (state.stage !== 'intro') return { error: 'Already playing.' };
-      return { state: { ...state, stage: 'play' } };
+    const waiting = state.stage === 'intro' || state.stage === 'results';
+    if (action.type === 'ready') {
+      if (!waiting) return { error: 'Nothing to get ready for.' };
+      if (state.ready.includes(playerId)) return { state };
+      const ready = [...state.ready, playerId];
+      const all = state.order.every((id) => ready.includes(id));
+      return { state: all ? { ...state, stage: 'play', ready: [] } : { ...state, ready } };
     }
-    if (action.type === 'next') {
-      if (!isHost) return { error: 'Only the host can move on.' };
-      if (state.stage !== 'results') return { error: 'Nothing to move on from yet.' };
-      return { state: nextMini(state, ctx.random) };
+    if (action.type === 'go') {
+      if (!isHost) return { error: 'Only the host can start without everyone.' };
+      if (!waiting) return { error: 'Already playing.' };
+      return { state: { ...state, stage: 'play', ready: [] } };
     }
     if (state.stage !== 'play') return { error: 'Wait for the minigame to start.' };
 
@@ -294,10 +315,10 @@ export const partyNightGame = defineGame<PartyState, PartyAction, PartyView>({
         const taps = Object.fromEntries(
           state.order.map((id) => [id, [...m.taps[id], ...Array(TAPS - m.taps[id].length).fill(-1)]])
         );
-        return { state: finishIfDone({ ...state, mini: { ...m, taps } }) };
+        return { state: finishIfDone({ ...state, mini: { ...m, taps } }, ctx.random) };
       }
-      if (m.kind === 'versus') return { state: finishIfDone({ ...state, mini: resolveVersus(m) }) };
-      return { state: finishIfDone({ ...state, mini: resolvePick(m, state.order) }) };
+      if (m.kind === 'versus') return { state: finishIfDone({ ...state, mini: resolveVersus(m) }, ctx.random) };
+      return { state: finishIfDone({ ...state, mini: resolvePick(m, state.order) }, ctx.random) };
     }
 
     if (action.type === 'tap') {
@@ -307,7 +328,7 @@ export const partyNightGame = defineGame<PartyState, PartyAction, PartyView>({
       if (action.attempt !== mine.length) return { error: 'That tap is out of order.' };
       const ms = Number.isFinite(action.ms) ? Math.round(action.ms) : -1;
       const taps = { ...m.taps, [playerId]: [...mine, ms] };
-      return { state: finishIfDone({ ...state, mini: { ...m, taps } }) };
+      return { state: finishIfDone({ ...state, mini: { ...m, taps } }, ctx.random) };
     }
 
     if (action.type === 'pick') {
@@ -317,7 +338,7 @@ export const partyNightGame = defineGame<PartyState, PartyAction, PartyView>({
       if (action.choice !== 'a' && action.choice !== 'b') return { error: 'Pick one of the two.' };
       let next: Versus = { ...m, picks: { ...m.picks, [playerId]: action.choice } };
       if (next.alive.every((id) => next.picks[id])) next = resolveVersus(next);
-      return { state: finishIfDone({ ...state, mini: next }) };
+      return { state: finishIfDone({ ...state, mini: next }, ctx.random) };
     }
 
     if (action.type === 'choose') {
@@ -326,7 +347,7 @@ export const partyNightGame = defineGame<PartyState, PartyAction, PartyView>({
       if (![0, 1, 2, 3].includes(action.option)) return { error: 'Pick one of the four.' };
       let next: SamePick = { ...m, picks: { ...m.picks, [playerId]: action.option } };
       if (state.order.every((id) => next.picks[id] !== undefined)) next = resolvePick(next, state.order);
-      return { state: finishIfDone({ ...state, mini: next }) };
+      return { state: finishIfDone({ ...state, mini: next }, ctx.random) };
     }
 
     return { error: 'Unknown move.' };
@@ -377,6 +398,7 @@ export const partyNightGame = defineGame<PartyState, PartyAction, PartyView>({
       goal: GOAL,
       round: state.round,
       stage: state.stage,
+      ready: state.ready,
       miniId: m.kind,
       mini,
       result: state.result,

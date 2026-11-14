@@ -10,10 +10,10 @@ export const MINI_INFO: Record<MiniId, { name: string; color: string; rules: str
     phone: 'Tap the moment your screen turns gold.',
   },
   versus: {
-    name: 'Last One Standing',
+    name: 'Knockout',
     color: '#b2492f',
-    rules: ['Two answers. Pick the right one.', 'Wrong and you’re out.', 'If everyone’s wrong, everyone stays.'],
-    phone: 'Pick the right one of two. Wrong and you’re out.',
+    rules: ['Which has more? Two answers, one is right.', 'Wrong and you’re knocked out.', 'If everyone’s wrong, everyone stays in.'],
+    phone: 'Which has more? Wrong and you’re knocked out.',
   },
   'same-pick': {
     name: 'Same Pick',
