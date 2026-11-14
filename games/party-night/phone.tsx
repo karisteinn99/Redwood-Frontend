@@ -325,7 +325,7 @@ function Setup({ view, players, isHost, send }: { view: PartyView; players: Play
         <div className={card}>
           <p className="text-sm tracking-[0.2em] text-[var(--party-text-muted)] uppercase">The Pickle</p>
           <p className="mt-2 font-[family-name:var(--font-display)] text-3xl font-bold">Almost ready</p>
-          <p className="mt-3 text-lg">{host?.name ?? 'The host'} is setting up the night.</p>
+          <p className="mt-3 text-lg">{host?.name ?? 'The host'} is choosing the rules.</p>
           <p className="mt-3 text-[var(--party-text-muted)]">
             {s.goal} points for a pickle · first to {s.trophies}
           </p>
@@ -342,7 +342,7 @@ function Setup({ view, players, isHost, send }: { view: PartyView; players: Play
       <div className={`${card} space-y-5 text-left`}>
         <div className="text-center">
           <p className="text-sm tracking-[0.2em] text-[var(--party-text-muted)] uppercase">The Pickle</p>
-          <p className="mt-1 font-[family-name:var(--font-display)] text-3xl font-bold">Set up the night</p>
+          <p className="mt-1 font-[family-name:var(--font-display)] text-3xl font-bold">Choose the rules</p>
         </div>
         <div>
           <p className="mb-2 font-semibold">Points for a pickle</p>
@@ -390,7 +390,7 @@ function Setup({ view, players, isHost, send }: { view: PartyView; players: Play
         </div>
       </div>
       <button disabled={total < 2} onClick={() => send({ type: 'begin' })} className={`${goldButton} disabled:opacity-40`}>
-        Start the night
+        Let’s go
       </button>
       {total < 2 && <p className="text-[var(--party-text-muted)]">Add a bot or a player first.</p>}
     </div>
@@ -466,7 +466,7 @@ export function PartyNightPhone({ view, players, send }: { view: PartyView; play
             ))}
           </div>
           <p className="mt-3 text-2xl font-bold">
-            {view.winnerIds.includes(yourId) ? 'You win the night!' : `${view.winnerIds.map((id) => who(id).name).join(' and ')} won the night`}
+            {view.winnerIds.includes(yourId) ? 'You win the pickle!' : `${view.winnerIds.map((id) => who(id).name).join(' and ')} won the pickle`}
           </p>
         </div>
       )}

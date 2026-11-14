@@ -396,7 +396,7 @@ export function PartyNightTv({ view, players }: { view: PartyView; players: Play
       <div className="flex w-full items-center gap-[5vw]">
         <div className="flex flex-1 flex-col gap-[3vh]">
           <Kicker>The Pickle</Kicker>
-          <p className="font-[family-name:var(--font-display)] text-[8vh] leading-none font-bold">Setting up the night</p>
+          <p className="font-[family-name:var(--font-display)] text-[8vh] leading-none font-bold">Choosing the rules</p>
           <p className="text-[3.2vh] text-[var(--party-text-muted)]">{host?.name ?? 'The host'} is choosing the rules on their phone.</p>
           <ul className="mt-[1vh] space-y-[1.4vh] text-[3.2vh]">
             <li>
@@ -475,7 +475,7 @@ export function PartyNightTv({ view, players }: { view: PartyView; players: Play
               <Burst colors={CONFETTI} reach="16vh" />
             </span>
             <p className="font-[family-name:var(--font-display)] text-[8vh] leading-none font-bold text-[var(--home-gold)]">
-              {view.winnerIds.map((id) => who(id).name).join(' and ')} {view.winnerIds.length > 1 ? 'win' : 'wins'} the night!
+              {view.winnerIds.map((id) => who(id).name).join(' and ')} {view.winnerIds.length > 1 ? 'win' : 'wins'} the pickle!
             </p>
           </div>
         ) : (
