@@ -6,6 +6,9 @@ export interface Pane {
   live: boolean;
   bloom?: [string, string];
   rim?: string;
+  // The part of the painting to show when it's cropped to a wide card (phone
+  // game page), as an SVG viewBox. Defaults to the whole pane, centred.
+  crop?: string;
   body: string;
 }
 
@@ -35,6 +38,7 @@ export const PANES: Record<'dock' | 'ship' | 'pickle' | 'building', Pane> = {
   // The Pickle: a pickle on a velvet cushion under two crossing stage lights.
   pickle: {
     live: true,
+    crop: '0 140 176 100',
     bloom: ['#fff1c9', '#e9c16a'],
     rim: '#f3d995',
     body:

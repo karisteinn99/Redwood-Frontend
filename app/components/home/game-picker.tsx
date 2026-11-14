@@ -12,13 +12,13 @@ import { PANES } from './home-windows';
 // list, opens one onto its own page (who's in, the player range, Start), and
 // every guest sees that same game as "Up next" with its rules.
 
-function GamePainting({ gameId, className = '' }: { gameId: string; className?: string }) {
+function GamePainting({ gameId, className = '', wide = false }: { gameId: string; className?: string; wide?: boolean }) {
   const id = useId().replace(/:/g, '');
   const pane = ROOM_DOORS.find((d) => d.gameId === gameId)?.pane;
   if (!pane) return <div className={`bg-[var(--home-surface)] ${className}`} />;
   return (
     <svg
-      viewBox="0 0 176 260"
+      viewBox={(wide && PANES[pane].crop) || '0 0 176 260'}
       preserveAspectRatio="xMidYMid slice"
       className={`block border-2 border-[var(--home-brass)] ${className}`}
       aria-hidden="true"
@@ -145,7 +145,7 @@ export function GameStage({
       >
         Up next
       </p>
-      <GamePainting gameId={game.id} className="h-36 w-full rounded-2xl" />
+      <GamePainting gameId={game.id} wide className="h-36 w-full rounded-2xl" />
       <div className="mt-5">
         <GameTitle gameId={game.id} name={game.name} />
       </div>
