@@ -6,7 +6,7 @@ import { PlayerToken } from '@/app/components/player-token';
 
 import { TAPS, type FinalReveal, type MiniView, type PartyView } from './definition';
 import { Burst, CONFETTI, placeColor } from './celebrate';
-import { Lanes, Trophy, TrophyBadge } from './lanes';
+import { Lanes, Pickle, PickleBadge } from './lanes';
 import { DOTS_SHOWN_MS, MINI_INFO, placeLabel } from './minis';
 import { humanIds, useHeldReveal, usePeople, type Person } from './people';
 
@@ -334,7 +334,7 @@ function Leaderboard({ view, who }: { view: PartyView; who: Who }) {
                   <span className="block text-[3vh] font-semibold">{who(p.id).name}</span>
                   <span className="block text-[2.2vh] text-[var(--party-text-muted)]">{p.detail}</span>
                 </span>
-                {trophy && <TrophyBadge className="h-[5vh] w-[4.4vh]" />}
+                {trophy && <PickleBadge className="h-[5vh] w-[5vh]" />}
                 <span
                   className="min-w-[5vw] rounded-full px-[1vw] py-[0.4vh] text-center text-[3.2vh] font-bold"
                   style={
@@ -374,11 +374,11 @@ function TrophySide({ view }: { view: PartyView }) {
     <div className="flex w-[14vw] shrink-0 flex-col items-center gap-[1.4vh] text-center">
       <div className="relative">
         <div className="absolute inset-[-30%] rounded-full bg-[radial-gradient(circle,rgba(246,226,168,0.3),transparent_65%)]" />
-        <Trophy className="relative h-[20vh] w-[17vh] drop-shadow-[0_1vh_1.6vh_rgba(0,0,0,0.6)]" />
+        <Pickle className="relative w-[16vw] drop-shadow-[0_1vh_1.6vh_rgba(0,0,0,0.6)]" />
       </div>
-      <span className="text-[2.8vh] font-semibold text-[#e8c97a]">{view.settings.goal} for a trophy</span>
+      <span className="text-[2.8vh] font-semibold text-[#e8c97a]">{view.settings.goal} for a pickle</span>
       <span className="text-[2.4vh] text-[var(--party-text-muted)]">
-        First to {view.settings.trophies} {view.settings.trophies === 1 ? 'trophy' : 'trophies'} wins
+        First to {view.settings.trophies} {view.settings.trophies === 1 ? 'pickle' : 'pickles'} wins
       </span>
     </div>
   );
@@ -395,12 +395,12 @@ export function PartyNightTv({ view, players }: { view: PartyView; players: Play
     body = (
       <div className="flex w-full items-center gap-[5vw]">
         <div className="flex flex-1 flex-col gap-[3vh]">
-          <Kicker>Party night</Kicker>
+          <Kicker>The Pickle</Kicker>
           <p className="font-[family-name:var(--font-display)] text-[8vh] leading-none font-bold">Setting up the night</p>
           <p className="text-[3.2vh] text-[var(--party-text-muted)]">{host?.name ?? 'The host'} is choosing the rules on their phone.</p>
           <ul className="mt-[1vh] space-y-[1.4vh] text-[3.2vh]">
             <li>
-              <b>{s.goal}</b> points for a trophy, first to <b>{s.trophies}</b> {s.trophies === 1 ? 'trophy' : 'trophies'} wins
+              <b>{s.goal}</b> points for a pickle, first to <b>{s.trophies}</b> {s.trophies === 1 ? 'pickle' : 'pickles'} wins
             </li>
             <li>{s.sprint ? <>Last sprint after <b>{s.line}</b>: the bottom places lose points</> : 'No last sprint'}</li>
             {s.bots > 0 && (
@@ -435,7 +435,7 @@ export function PartyNightTv({ view, players }: { view: PartyView; players: Play
         </Window>
         <ReadyRow view={view} who={who} />
         <p className="text-[2.4vh] text-[var(--party-text-muted)]">
-          1st gets 3 points · 2nd gets 2 · 3rd gets 1 · {view.settings.goal} for a trophy
+          1st gets 3 points · 2nd gets 2 · 3rd gets 1 · {view.settings.goal} for a pickle
         </p>
       </div>
     );
@@ -458,7 +458,7 @@ export function PartyNightTv({ view, players }: { view: PartyView; players: Play
     const details: Record<string, string> = {};
     for (const p of result?.placings ?? []) {
       changes[p.id] = trophyIds.includes(p.id) ? 0 : p.change;
-      details[p.id] = trophyIds.includes(p.id) ? 'Trophy!' : p.detail;
+      details[p.id] = trophyIds.includes(p.id) ? 'Pickle!' : p.detail;
     }
     const trophyNames = trophyIds.map((id) => who(id).name).join(' and ');
     const scores = (
@@ -481,7 +481,7 @@ export function PartyNightTv({ view, players }: { view: PartyView; players: Play
         ) : (
           trophyIds.length > 0 && (
             <p className="animate-home-fade font-[family-name:var(--font-display)] text-[5vh] leading-none font-bold text-[var(--home-gold)]">
-              {trophyNames} {trophyIds.length > 1 ? 'win a trophy!' : 'wins a trophy!'}
+              {trophyNames} {trophyIds.length > 1 ? 'win a pickle!' : 'wins a pickle!'}
             </p>
           )
         )}

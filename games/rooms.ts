@@ -4,7 +4,7 @@ export interface RoomDoor {
   gameId: string;
   label: string;
   // Which painting shows through the window (app/components/home/home-windows.ts).
-  pane: 'dock' | 'ship';
+  pane: 'dock' | 'ship' | 'pickle';
   // The room's colour: the window title's gradient, top to bottom, and the
   // colour its wave lights the motes in.
   title: [string, string, string];
@@ -17,4 +17,5 @@ export interface RoomDoor {
 export const ROOM_DOORS: RoomDoor[] = [
   { gameId: 'go-fish', label: 'Go Fish', pane: 'dock', title: ['#ffe3d3', '#ffb08d', '#e9774d'], wave: [255, 138, 92] },
   { gameId: 'liars-dice', label: 'Liar’s Game', pane: 'ship', title: ['#d6faf0', '#86ead2', '#3cbf9f'], wave: [77, 232, 194] },
+  { gameId: 'party-night', label: 'The Pickle', pane: 'pickle', title: ['#f1f9cf', '#c3de6e', '#7fa834'], wave: [190, 222, 110] },
 ];

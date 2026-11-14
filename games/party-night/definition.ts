@@ -465,7 +465,7 @@ const BOT_NAMES = ['Robo Ragnar', 'Robo Sól', 'Robo Bjarki', 'Robo Una', 'Robo 
 
 export const partyNightGame = defineGame<PartyState, PartyAction, PartyView>({
   id: 'party-night',
-  name: 'Party night',
+  name: 'The Pickle',
   // One is enough when testing with bots; the setup screen says so.
   minPlayers: 1,
   maxPlayers: 8,

@@ -20,7 +20,7 @@ import {
   type Settings,
 } from './definition';
 import { Burst, CONFETTI, placeColor } from './celebrate';
-import { LaneCells, TrophyBadge } from './lanes';
+import { LaneCells, PickleBadge } from './lanes';
 import { MINI_INFO, placeLabel } from './minis';
 import { humanIds, useHeldReveal, usePeople, type Person } from './people';
 import { PartyBackdrop } from './tv';
@@ -323,11 +323,11 @@ function Setup({ view, players, isHost, send }: { view: PartyView; players: Play
       <div className="flex w-full flex-col items-center gap-5 font-[family-name:var(--font-read)] text-[var(--party-text)]">
         <PartyBackdrop />
         <div className={card}>
-          <p className="text-sm tracking-[0.2em] text-[var(--party-text-muted)] uppercase">Party night</p>
+          <p className="text-sm tracking-[0.2em] text-[var(--party-text-muted)] uppercase">The Pickle</p>
           <p className="mt-2 font-[family-name:var(--font-display)] text-3xl font-bold">Almost ready</p>
           <p className="mt-3 text-lg">{host?.name ?? 'The host'} is setting up the night.</p>
           <p className="mt-3 text-[var(--party-text-muted)]">
-            {s.goal} points for a trophy · first to {s.trophies}
+            {s.goal} points for a pickle · first to {s.trophies}
           </p>
         </div>
       </div>
@@ -341,11 +341,11 @@ function Setup({ view, players, isHost, send }: { view: PartyView; players: Play
       <PartyBackdrop />
       <div className={`${card} space-y-5 text-left`}>
         <div className="text-center">
-          <p className="text-sm tracking-[0.2em] text-[var(--party-text-muted)] uppercase">Party night</p>
+          <p className="text-sm tracking-[0.2em] text-[var(--party-text-muted)] uppercase">The Pickle</p>
           <p className="mt-1 font-[family-name:var(--font-display)] text-3xl font-bold">Set up the night</p>
         </div>
         <div>
-          <p className="mb-2 font-semibold">Points for a trophy</p>
+          <p className="mb-2 font-semibold">Points for a pickle</p>
           <div className="flex gap-2">
             {GOAL_OPTIONS.map((g) => (
               <button key={g} onClick={() => set({ goal: g })} className={chip(s.goal === g)}>
@@ -355,7 +355,7 @@ function Setup({ view, players, isHost, send }: { view: PartyView; players: Play
           </div>
         </div>
         <div>
-          <p className="mb-2 font-semibold">Trophies to win</p>
+          <p className="mb-2 font-semibold">Pickles to win</p>
           <div className="flex gap-2">
             {TROPHY_OPTIONS.map((t) => (
               <button key={t} onClick={() => set({ trophies: t })} className={chip(s.trophies === t)}>
@@ -406,7 +406,7 @@ function MyLane({ view, me, change }: { view: PartyView; me: Person; change: num
         <span className="font-semibold">Your points</span>
         <span className="flex items-center gap-1">
           {Array.from({ length: view.settings.trophies }, (_, i) => (
-            <TrophyBadge key={i} className={`h-7 w-6 ${i < trophies ? '' : 'opacity-20 grayscale'}`} />
+            <PickleBadge key={i} className={`h-8 w-8 ${i < trophies ? '' : 'opacity-20 grayscale'}`} />
           ))}
         </span>
       </div>
@@ -475,8 +475,8 @@ export function PartyNightPhone({ view, players, send }: { view: PartyView; play
           <p className="text-sm text-[var(--party-text-muted)]">{MINI_INFO[result.mini].name}</p>
           {gotTrophy ? (
             <div className="mt-2 flex flex-col items-center">
-              <TrophyBadge className="h-16 w-14" />
-              <p className="mt-2 font-[family-name:var(--font-display)] text-3xl font-bold text-[var(--home-gold)]">Trophy!</p>
+              <PickleBadge className="h-20 w-20" />
+              <p className="mt-2 font-[family-name:var(--font-display)] text-3xl font-bold text-[var(--home-gold)]">Pickle!</p>
             </div>
           ) : (
             <>

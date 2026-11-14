@@ -9,7 +9,7 @@ export interface Pane {
   body: string;
 }
 
-export const PANES: Record<'dock' | 'ship' | 'building', Pane> = {
+export const PANES: Record<'dock' | 'ship' | 'pickle' | 'building', Pane> = {
   dock: {
     live: true,
     bloom: ['#ffd2b8', '#ff8a5c'],
@@ -31,6 +31,32 @@ export const PANES: Record<'dock' | 'ship' | 'building', Pane> = {
       '<path d="M-10 0 C30 60 30 200 -10 260 L18 260 C52 200 52 60 18 0Z" fill="#3a2a1a"/><path d="M186 0 C146 60 146 200 186 260 L158 260 C124 200 124 60 158 0Z" fill="#3a2a1a"/>' +
       '<circle cx="112" cy="92" r="24" fill="none" stroke="#8a6a3c" stroke-width="5"/><circle cx="112" cy="92" r="19" fill="#4de8c2" opacity="0.28"/>' +
       '<path d="M76 30 V60" stroke="#4a3a24" stroke-width="2"/><circle cx="76" cy="68" r="9" fill="#e8a33d"/><circle cx="76" cy="68" r="22" fill="#e8a33d" opacity="0.18"/>',
+  },
+  // The Pickle: a pickle on a velvet cushion under two crossing stage lights.
+  pickle: {
+    live: true,
+    bloom: ['#fff1c9', '#e9c16a'],
+    rim: '#f3d995',
+    body:
+      '<defs><radialGradient id="PID-bg" cx="0.5" cy="0.75" r="0.8"><stop offset="0" stop-color="#2a3160"/><stop offset="0.6" stop-color="#121733"/><stop offset="1" stop-color="#080a17"/>' +
+      '</radialGradient><linearGradient id="PID-beam" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#eef0ff" stop-opacity="0.55"/><stop offset="1" stop-color="#eef0ff" stop-opa' +
+      'city="0.05"/></linearGradient><linearGradient id="PID-p" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#9cbf4a"/><stop offset="0.5" stop-color="#5f8424"/><stop offset="1' +
+      '" stop-color="#2f4a12"/></linearGradient></defs><rect width="176" height="260" fill="url(#PID-bg)"/><path d="M4 40 L14 34 L112 222 L70 226 Z" fill="url(#PID-beam)"/><path d="M172 4' +
+      '0 L162 34 L64 222 L106 226 Z" fill="url(#PID-beam)"/><ellipse cx="88" cy="226" rx="52" ry="11" fill="#f6e2a8" opacity="0.28"/><rect x="0" y="232" width="176" height="28" fill="#0b0' +
+      'e1f"/><path d="M0 232 H176" stroke="#363d63" stroke-width="2"/><path d="M46 226 q42 -14 84 0 q4 8 -2 10 h-80 q-6 -2 -2 -10z" fill="#7a2034"/><path d="M48 226 q40 -10 80 0" fill="no' +
+      'ne" stroke="#b8955a" stroke-width="1.6"/><path d="M38 206 C36 196 46 190 58 190 C80 190 104 182 122 170 C134 162 146 166 146 178 C146 192 128 206 104 214 C82 221 50 222 42 216 C39 ' +
+      '213 38 210 38 206Z" fill="url(#PID-p)" stroke="#2a4010" stroke-width="1.8"/><path d="M48 198 C70 196 100 188 124 174" fill="none" stroke="#c9e07a" stroke-width="3" stroke-linecap="' +
+      'round" opacity="0.65"/><ellipse cx="54" cy="206" rx="2.2" ry="1.76" fill="#2a4010" opacity="0.55"/><ellipse cx="54" cy="205" rx="1.98" ry="1.54" fill="#b7d665"/><ellipse cx="66" cy' +
+      '="201" rx="2.2" ry="1.76" fill="#2a4010" opacity="0.55"/><ellipse cx="66" cy="200" rx="1.98" ry="1.54" fill="#b7d665"/><ellipse cx="78" cy="207" rx="2.2" ry="1.76" fill="#2a4010" o' +
+      'pacity="0.55"/><ellipse cx="78" cy="206" rx="1.98" ry="1.54" fill="#b7d665"/><ellipse cx="90" cy="199" rx="2.2" ry="1.76" fill="#2a4010" opacity="0.55"/><ellipse cx="90" cy="198" r' +
+      'x="1.98" ry="1.54" fill="#b7d665"/><ellipse cx="102" cy="205" rx="2.2" ry="1.76" fill="#2a4010" opacity="0.55"/><ellipse cx="102" cy="204" rx="1.98" ry="1.54" fill="#b7d665"/><elli' +
+      'pse cx="112" cy="195" rx="2.2" ry="1.76" fill="#2a4010" opacity="0.55"/><ellipse cx="112" cy="194" rx="1.98" ry="1.54" fill="#b7d665"/><ellipse cx="124" cy="189" rx="2.2" ry="1.76"' +
+      ' fill="#2a4010" opacity="0.55"/><ellipse cx="124" cy="188" rx="1.98" ry="1.54" fill="#b7d665"/><ellipse cx="134" cy="183" rx="2.2" ry="1.76" fill="#2a4010" opacity="0.55"/><ellipse' +
+      ' cx="134" cy="182" rx="1.98" ry="1.54" fill="#b7d665"/><ellipse cx="70" cy="213" rx="2.2" ry="1.76" fill="#2a4010" opacity="0.55"/><ellipse cx="70" cy="212" rx="1.98" ry="1.54" fil' +
+      'l="#b7d665"/><ellipse cx="96" cy="213" rx="2.2" ry="1.76" fill="#2a4010" opacity="0.55"/><ellipse cx="96" cy="212" rx="1.98" ry="1.54" fill="#b7d665"/><ellipse cx="118" cy="203" rx' +
+      '="2.2" ry="1.76" fill="#2a4010" opacity="0.55"/><ellipse cx="118" cy="202" rx="1.98" ry="1.54" fill="#b7d665"/><ellipse cx="140" cy="177" rx="2.2" ry="1.76" fill="#2a4010" opacity=' +
+      '"0.55"/><ellipse cx="140" cy="176" rx="1.98" ry="1.54" fill="#b7d665"/><path d="M146 176 q6 -3 8 1" fill="none" stroke="#4a3a1c" stroke-width="3" stroke-linecap="round"/><g fill="#' +
+      'f6e2a8"><circle cx="40" cy="78" r="1.4" opacity="0.7"/><circle cx="132" cy="96" r="1.2" opacity="0.6"/><circle cx="118" cy="60" r="1" opacity="0.5"/></g>',
   },
   // A room still being built: curtains tied back, a stepladder inside.
   building: {
