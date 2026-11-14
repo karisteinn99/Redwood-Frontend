@@ -1,3 +1,5 @@
+import { useEffect, useState } from 'react';
+
 import { PlayerToken, tokenColor } from '@/app/components/player-token';
 
 import type { PartyView } from './definition';
@@ -122,12 +124,19 @@ export function Lanes({
   details?: Record<string, string>;
 }) {
   const { goal, line, sprint } = view.settings;
+  // Start from before this round, then let the new points fill in.
+  const [settled, setSettled] = useState(false);
+  useEffect(() => {
+    const t = setTimeout(() => setSettled(true), 700);
+    return () => clearTimeout(t);
+  }, []);
   const rowH = Math.min(9, 66 / view.order.length);
   return (
     <div className="flex w-full flex-col" style={{ gap: `${rowH * 0.2}vh` }}>
       {view.order.map((id) => {
         const p = who(id);
-        const change = changes[id] ?? 0;
+        const change = settled ? (changes[id] ?? 0) : 0;
+        const points = (view.points[id] ?? 0) - (settled ? 0 : (changes[id] ?? 0));
         const trophies = view.trophies[id] ?? 0;
         return (
           <div key={id} className="flex items-center gap-[1vw]" style={{ height: `${rowH}vh` }}>
@@ -151,7 +160,7 @@ export function Lanes({
             >
               <LaneCells
                 color={tokenColor(p.avatar)}
-                points={view.points[id] ?? 0}
+                points={points}
                 change={change}
                 goal={goal}
                 line={line}

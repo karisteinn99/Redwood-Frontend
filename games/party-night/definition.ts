@@ -275,8 +275,12 @@ function placings(mini: Mini, order: string[]): Placing[] {
       order,
       total,
       (id) => {
-        const best = bestTap(mini.taps[id]);
-        return best === null ? 'All false starts' : `Best ${(best / 1000).toFixed(3)} s`;
+        // Placed on all three tries, so say that, not just the best one.
+        const ok = mini.taps[id].filter((t) => tapCost(t) < FALSE_START_MS);
+        const misses = mini.taps[id].length - ok.length;
+        if (!ok.length) return 'All too early or slow';
+        const avg = `Average ${(ok.reduce((a, b) => a + b, 0) / ok.length / 1000).toFixed(3)} s`;
+        return misses ? `${avg} · ${misses} missed` : avg;
       },
       (id) => bestTap(mini.taps[id]) !== null
     );

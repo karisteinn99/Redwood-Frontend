@@ -5,8 +5,9 @@ import type { Player } from '@shared/party-types';
 import { PlayerToken } from '@/app/components/player-token';
 
 import { TAPS, type FinalReveal, type MiniView, type PartyView } from './definition';
-import { Lanes, Trophy } from './lanes';
-import { DOTS_SHOWN_MS, MINI_INFO } from './minis';
+import { Burst, CONFETTI, placeColor } from './celebrate';
+import { Lanes, Trophy, TrophyBadge } from './lanes';
+import { DOTS_SHOWN_MS, MINI_INFO, placeLabel } from './minis';
 import { humanIds, useHeldReveal, usePeople, type Person } from './people';
 
 // Party night on the TV: its own dark stage, so it never looks like Home.
@@ -18,9 +19,9 @@ export function PartyBackdrop() {
   return (
     <div className="pointer-events-none fixed inset-0 -z-10 overflow-hidden bg-[var(--party-bg)]" aria-hidden="true">
       <div className="absolute inset-x-0 bottom-0 h-[38%] bg-[linear-gradient(180deg,transparent,rgba(54,61,99,0.35))]" />
-      <div className="absolute bottom-[-20%] left-1/2 h-[55%] w-[110%] -translate-x-1/2 rounded-[50%] bg-[radial-gradient(ellipse,rgba(246,226,168,0.16),transparent_65%)]" />
-      <div className="absolute top-[-10%] left-[8%] h-[130%] w-[34%] origin-top rotate-[-18deg] bg-[linear-gradient(180deg,rgba(220,225,255,0.13),transparent_80%)] [clip-path:polygon(45%_0,55%_0,100%_100%,0_100%)]" />
-      <div className="absolute top-[-10%] right-[8%] h-[130%] w-[34%] origin-top rotate-[18deg] bg-[linear-gradient(180deg,rgba(220,225,255,0.13),transparent_80%)] [clip-path:polygon(45%_0,55%_0,100%_100%,0_100%)]" />
+      <div className="absolute bottom-[-20%] left-1/2 h-[55%] w-[110%] -translate-x-1/2 rounded-[50%] bg-[radial-gradient(ellipse,rgba(246,226,168,0.12),transparent_65%)]" />
+      <div className="absolute top-[-12%] left-[-10%] h-[140%] w-[34%] origin-top rotate-[-30deg] bg-[linear-gradient(180deg,rgba(220,225,255,0.09),transparent_78%)] [clip-path:polygon(45%_0,55%_0,100%_100%,0_100%)]" />
+      <div className="absolute top-[-12%] right-[-10%] h-[140%] w-[34%] origin-top rotate-[30deg] bg-[linear-gradient(180deg,rgba(220,225,255,0.09),transparent_78%)] [clip-path:polygon(45%_0,55%_0,100%_100%,0_100%)]" />
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_50%_45%,transparent_50%,rgba(0,0,0,0.55))]" />
     </div>
   );
@@ -259,21 +260,98 @@ function PlayBody({ view, who }: { view: PartyView; who: Who }) {
   return <DotWindow key={m.index} m={m} />;
 }
 
-// The last answer gets its moment, then the scores take over.
-function FinalThenScores({ final, view, who, children }: { final: FinalReveal; view: PartyView; who: Who; children: React.ReactNode }) {
-  const [held, setHeld] = useState(true);
+// After a minigame: the last answer gets its moment, then a leaderboard with
+// the winner up front, then the points fill into the lanes.
+function ResultsSequence({ view, who, children }: { view: PartyView; who: Who; children: React.ReactNode }) {
+  const result = view.result!;
+  const [phase, setPhase] = useState<'answer' | 'board' | 'lanes'>(result.final ? 'answer' : 'board');
   useEffect(() => {
-    const t = setTimeout(() => setHeld(false), 3200);
+    if (phase === 'lanes') return;
+    const t = setTimeout(() => setPhase(phase === 'answer' ? 'board' : 'lanes'), phase === 'answer' ? 3200 : 6500);
     return () => clearTimeout(t);
-  }, []);
-  if (!held) return <div className="animate-home-fade h-full w-full">{children}</div>;
-  const info = MINI_INFO[final.kind];
+  }, [phase]);
+  const info = MINI_INFO[result.mini];
+  if (phase === 'answer' && result.final) {
+    return (
+      <div className="mx-auto flex w-[62vw] flex-col gap-[2vh]">
+        <Kicker>{info.name} · last answer</Kicker>
+        <Window color={info.color}>
+          <Reveal final={result.final} view={view} who={who} />
+        </Window>
+      </div>
+    );
+  }
+  if (phase === 'board') return <Leaderboard view={view} who={who} />;
+  return <div className="animate-home-fade h-full w-full">{children}</div>;
+}
+
+function Leaderboard({ view, who }: { view: PartyView; who: Who }) {
+  const result = view.result!;
+  const info = MINI_INFO[result.mini];
+  const winners = result.placings.filter((p) => p.place === 1);
+  const rows = result.placings;
   return (
-    <div className="mx-auto flex w-[62vw] flex-col gap-[2vh]">
-      <Kicker>{info.name} · last answer</Kicker>
-      <Window color={info.color}>
-        <Reveal final={final} view={view} who={who} />
-      </Window>
+    <div className="flex h-full w-full flex-col gap-[3vh]">
+      <Kicker>
+        {info.name} · results
+      </Kicker>
+      <div className="flex flex-1 items-center gap-[5vw]">
+        <div className="flex w-[34vw] flex-col items-center text-center">
+          <div className="relative flex items-center justify-center">
+            <div className="animate-party-glow absolute h-[34vh] w-[34vh] rounded-full bg-[radial-gradient(circle,rgba(246,226,168,0.45),transparent_65%)]" />
+            <div className="animate-party-pop relative flex gap-[1vw]">
+              {winners.map((w) => (
+                <PlayerToken key={w.id} avatar={who(w.id).avatar} className="h-[20vh] w-[20vh] drop-shadow-[0_1.4vh_2.4vh_rgba(0,0,0,0.6)]" />
+              ))}
+            </div>
+            <Burst colors={CONFETTI} reach="22vh" piece="1.8vh" delay={250} />
+          </div>
+          <p className="animate-party-rise mt-[4vh] font-[family-name:var(--font-display)] text-[7vh] leading-none font-bold text-[var(--home-gold)] [animation-delay:300ms]">
+            {winners.map((w) => who(w.id).name).join(' and ')} {winners.length > 1 ? 'win' : 'wins'}!
+          </p>
+          <p className="animate-party-rise mt-[1.6vh] text-[3vh] text-[var(--party-text-muted)] [animation-delay:450ms]">
+            {winners[0]?.detail}
+          </p>
+        </div>
+        <ol className="flex flex-1 flex-col gap-[1.4vh]">
+          {rows.map((p, i) => {
+            const trophy = result.trophyIds.includes(p.id);
+            return (
+              <li
+                key={p.id}
+                className="animate-party-rise flex items-center gap-[1.4vw] rounded-[1.6vh] px-[1.4vw] py-[1.2vh]"
+                style={{
+                  animationDelay: `${700 + i * 220}ms`,
+                  background: p.place === 1 ? 'rgba(240,212,143,0.14)' : 'rgba(26,31,54,0.7)',
+                  boxShadow: p.place === 1 ? 'inset 0 0 0 2px rgba(240,212,143,0.6)' : 'none',
+                }}
+              >
+                <span className="w-[4.4vw] font-[family-name:var(--font-display)] text-[4.4vh] font-bold" style={{ color: placeColor(p.place) }}>
+                  {placeLabel(p.place)}
+                </span>
+                <PlayerToken avatar={who(p.id).avatar} className="h-[6vh] w-[6vh]" />
+                <span className="flex-1 leading-tight">
+                  <span className="block text-[3vh] font-semibold">{who(p.id).name}</span>
+                  <span className="block text-[2.2vh] text-[var(--party-text-muted)]">{p.detail}</span>
+                </span>
+                {trophy && <TrophyBadge className="h-[5vh] w-[4.4vh]" />}
+                <span
+                  className="min-w-[5vw] rounded-full px-[1vw] py-[0.4vh] text-center text-[3.2vh] font-bold"
+                  style={
+                    p.change > 0
+                      ? { background: 'var(--home-gold)', color: '#211d18' }
+                      : p.change < 0
+                        ? { background: 'rgba(255,159,138,0.18)', color: '#ff9f8a' }
+                        : { color: 'var(--party-text-muted)' }
+                  }
+                >
+                  {p.change > 0 ? `+${p.change}` : p.change < 0 ? `−${-p.change}` : '0'}
+                </span>
+              </li>
+            );
+          })}
+        </ol>
+      </div>
     </div>
   );
 }
@@ -390,9 +468,12 @@ export function PartyNightTv({ view, players }: { view: PartyView; players: Play
         </Kicker>
         {view.stage === 'over' ? (
           <div className="flex items-center gap-[1.6vw]">
-            {view.winnerIds.map((id) => (
-              <PlayerToken key={id} avatar={who(id).avatar} className="h-[10vh] w-[10vh]" />
-            ))}
+            <span className="animate-party-pop relative flex">
+              {view.winnerIds.map((id) => (
+                <PlayerToken key={id} avatar={who(id).avatar} className="h-[10vh] w-[10vh]" />
+              ))}
+              <Burst colors={CONFETTI} reach="16vh" />
+            </span>
             <p className="font-[family-name:var(--font-display)] text-[8vh] leading-none font-bold text-[var(--home-gold)]">
               {view.winnerIds.map((id) => who(id).name).join(' and ')} {view.winnerIds.length > 1 ? 'win' : 'wins'} the night!
             </p>
@@ -413,10 +494,10 @@ export function PartyNightTv({ view, players }: { view: PartyView; players: Play
         {view.stage === 'results' && <UpNext view={view} who={who} />}
       </div>
     );
-    body = result?.final ? (
-      <FinalThenScores final={result.final} view={view} who={who}>
+    body = result ? (
+      <ResultsSequence view={view} who={who}>
         {scores}
-      </FinalThenScores>
+      </ResultsSequence>
     ) : (
       scores
     );

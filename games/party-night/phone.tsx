@@ -19,6 +19,7 @@ import {
   type PartyView,
   type Settings,
 } from './definition';
+import { Burst, CONFETTI, placeColor } from './celebrate';
 import { LaneCells, TrophyBadge } from './lanes';
 import { MINI_INFO, placeLabel } from './minis';
 import { humanIds, useHeldReveal, usePeople, type Person } from './people';
@@ -116,22 +117,42 @@ function QuickTap({ m, yourId, send }: { m: Extract<MiniView, { kind: 'quick-tap
   );
 }
 
+// The big right/wrong moment on a phone: a disc that pops in, and confetti
+// when it went your way.
+function Verdict({ good, title, children }: { good: boolean; title: string; children?: React.ReactNode }) {
+  return (
+    <div className="flex flex-col items-center text-center text-white">
+      <span className="relative">
+        <span
+          className={`animate-party-pop flex h-28 w-28 items-center justify-center rounded-full text-6xl font-bold ${
+            good ? 'bg-white text-[#1f6b3f]' : 'bg-black/25 text-white/80'
+          }`}
+        >
+          {good ? '✓' : '✕'}
+        </span>
+        {good && <Burst colors={CONFETTI} reach="110px" piece="12px" delay={150} />}
+      </span>
+      <p className="animate-party-rise mt-6 text-4xl font-bold [animation-delay:200ms]">{title}</p>
+      <div className="animate-party-rise mt-3 text-lg opacity-90 [animation-delay:350ms]">{children}</div>
+    </div>
+  );
+}
+
 function Versus({ m, yourId, send }: { m: Extract<MiniView, { kind: 'versus' }>; yourId: string; send: Send }) {
   const holding = useHeldReveal(m.reveal?.id ?? null);
   const out = !m.alive.includes(yourId);
   const r = m.reveal;
 
-  if (holding && r) {
+  if (holding && r && (!out || r.wrongIds.includes(yourId))) {
     const right = r.question[r.question.answer];
     const wasWrong = r.wrongIds.includes(yourId);
     return (
-      <div className="text-center text-white">
-        <p className="text-4xl font-bold">{r.savedAll ? 'Everyone missed' : wasWrong ? 'Knocked out!' : 'Right!'}</p>
-        <p className="mt-3 text-lg opacity-90">
+      <Verdict good={!wasWrong && !r.savedAll} title={r.savedAll ? 'Everyone missed' : wasWrong ? 'Knocked out!' : 'Right!'}>
+        <p>
           {right.label}: {right.value}
         </p>
         {r.savedAll && <p className="mt-2 opacity-80">So everyone stays in.</p>}
-      </div>
+      </Verdict>
     );
   }
   if (out) {
@@ -176,12 +197,9 @@ function SamePick({ m, yourId, send }: { m: Extract<MiniView, { kind: 'same-pick
   if (holding && r) {
     const matched = r.scorers.includes(yourId);
     return (
-      <div className="text-center text-white">
-        <p className="text-4xl font-bold">{matched ? 'You matched!' : 'Not this time'}</p>
-        <p className="mt-3 text-lg opacity-90">
-          {r.top.length ? `The room picked ${r.top.map((i) => r.prompt.options[i]).join(' and ')}` : 'Everyone picked differently'}
-        </p>
-      </div>
+      <Verdict good={matched} title={matched ? 'You matched!' : 'Not this time'}>
+        {r.top.length ? `The room picked ${r.top.map((i) => r.prompt.options[i]).join(' and ')}` : 'Everyone picked differently'}
+      </Verdict>
     );
   }
   if (!m.prompt) return null;
@@ -255,13 +273,14 @@ function Closest({ m, yourId, send }: { m: Extract<MiniView, { kind: 'closest' }
 
 function ClosestResult({ r, yourId }: { r: Extract<FinalReveal, { kind: 'closest' }>['reveal']; yourId: string }) {
   const g = r.guesses[yourId];
+  const off = g === undefined ? Infinity : Math.abs(g - r.answer);
+  // Closest in the room, or within a tenth of the answer, counts as a hit.
+  const best = Math.min(...Object.values(r.guesses).map((x) => Math.abs(x - r.answer)));
+  const good = off === best || off <= Math.max(1, Math.round(r.answer / 10));
   return (
-    <div className="text-center text-white">
-      <p className="text-4xl font-bold">There were {r.answer}</p>
-      <p className="mt-3 text-lg opacity-90">
-        {g === undefined ? 'You didn’t guess' : g === r.answer ? 'Spot on!' : `You said ${g}, off by ${Math.abs(g - r.answer)}`}
-      </p>
-    </div>
+    <Verdict good={good} title={off === 0 ? 'Spot on!' : off === best ? 'Closest!' : good ? 'So close!' : `There were ${r.answer}`}>
+      {g === undefined ? 'You didn’t guess' : `There were ${r.answer}. You said ${g}.`}
+    </Verdict>
   );
 }
 
@@ -461,8 +480,9 @@ export function PartyNightPhone({ view, players, send }: { view: PartyView; play
             </div>
           ) : (
             <>
-              <p className="mt-1 font-[family-name:var(--font-display)] text-6xl font-bold text-[var(--home-gold)]">
-                {placeLabel(placing.place)}
+              <p className="relative mt-1 font-[family-name:var(--font-display)] text-6xl font-bold" style={{ color: placeColor(placing.place) }}>
+                <span className="animate-party-pop inline-block">{placing.place === 1 ? 'You won!' : placeLabel(placing.place)}</span>
+                {placing.place === 1 && <Burst colors={CONFETTI} reach="120px" piece="12px" delay={150} />}
               </p>
               <p className="mt-2 text-xl font-semibold" style={{ color: change < 0 ? '#ff9f8a' : undefined }}>
                 {change > 0 ? `+${change} points` : change < 0 ? `−${-change} points` : 'No points this time'}
