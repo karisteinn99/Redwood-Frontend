@@ -57,12 +57,12 @@ export const GAME_UI: Record<string, GameUi> = {
   'party-night': {
     Tv: PartyNightTv,
     Phone: PartyNightPhone,
-    blurb: 'Quick minigames back to back. Race to the pickle.',
+    blurb: 'Quick minigames back to back. Win trophies, win the pickle.',
     playTime: '20–30 min',
     tvRules: [
       ['Short minigames, one after another', 'Tapping, guessing, reading the room. About a minute each.'],
-      ['Your place earns points', '1st gets 3, 2nd gets 2, 3rd gets 1. Reach 15 for a pickle.'],
-      ['First to two pickles wins', 'Past the line, the last places lose points. The host can change all this.'],
+      ['Your place earns points', '1st gets 3, 2nd gets 2, 3rd gets 1. Reach 15 for a trophy.'],
+      ['First to two trophies wins the pickle', 'Past the line, the last places lose points. The host can change all this.'],
     ],
   },
 };

@@ -50,7 +50,7 @@ export function HomeField({
       r: 0.8 + Math.random() * 1.8,
       vx: (Math.random() - 0.5) * 0.12,
       vy: -0.05 - Math.random() * 0.12,
-      base: 0.05 + Math.random() * 0.12,
+      base: 0.03 + Math.random() * 0.06,
       lit: 0,
       rgb: [255, 220, 170] as [number, number, number],
       tw: Math.random() * 6.28,
@@ -95,10 +95,10 @@ export function HomeField({
           }
         }
         m.lit *= Math.pow(0.985, dt / 16.7);
-        const a = m.base * (0.75 + 0.25 * Math.sin(m.tw)) + m.lit * 0.85;
+        const a = m.base * (0.75 + 0.25 * Math.sin(m.tw)) + m.lit * 0.3;
         const col = m.lit > 0.02 ? m.rgb : [255, 220, 170];
         ctx.beginPath();
-        ctx.arc(m.x, m.y, m.r * (1 + m.lit * 0.8), 0, Math.PI * 2);
+        ctx.arc(m.x, m.y, m.r * (1 + m.lit * 0.25), 0, Math.PI * 2);
         ctx.fillStyle = `rgba(${col.join(',')},${a.toFixed(3)})`;
         ctx.fill();
       }

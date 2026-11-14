@@ -40,6 +40,36 @@ function PickleShape({ id }: { id: string }) {
 }
 const BUMPS = [[54, 205], [66, 200], [78, 206], [90, 198], [102, 204], [112, 194], [124, 188], [134, 182], [70, 212], [96, 212], [118, 202], [140, 176]];
 
+// The prize: a gold cup with the pickle leaning out of it.
+export function PickleTrophy({ className = '' }: { className?: string }) {
+  const id = `pt${useId().replace(/[^a-zA-Z0-9]/g, '')}`;
+  return (
+    <svg viewBox="16 -34 88 170" className={className} role="img" aria-label="pickle trophy">
+      <defs>
+        <linearGradient id={`${id}g`} x1="0" x2="1" y1="0" y2="0">
+          <stop offset="0" stopColor="#8a6328" />
+          <stop offset="0.28" stopColor="#f6e2a8" />
+          <stop offset="0.5" stopColor="#dcb565" />
+          <stop offset="0.78" stopColor="#a87a34" />
+          <stop offset="1" stopColor="#6e4c1c" />
+        </linearGradient>
+      </defs>
+      <g transform="translate(70 2) rotate(-58) scale(0.6167) translate(-96 -193)">
+        <PickleShape id={`${id}p`} />
+      </g>
+      <ellipse cx="60" cy="12" rx="34" ry="5" fill="#3a2a1a" />
+      <path d="M30 22 C10 22 8 52 34 60" fill="none" stroke={`url(#${id}g)`} strokeWidth="7" strokeLinecap="round" />
+      <path d="M90 22 C110 22 112 52 86 60" fill="none" stroke={`url(#${id}g)`} strokeWidth="7" strokeLinecap="round" />
+      <path d="M26 12 H94 V30 C94 58 78 74 60 76 C42 74 26 58 26 30 Z" fill={`url(#${id}g)`} />
+      <path d="M38 20 C38 44 44 60 54 68" fill="none" stroke="#fff6dc" strokeWidth="3" strokeLinecap="round" opacity="0.7" />
+      <path d="M54 76 H66 L64 92 H56 Z" fill={`url(#${id}g)`} />
+      <path d="M40 92 H80 L84 102 H36 Z" fill={`url(#${id}g)`} />
+      <rect x="30" y="102" width="60" height="30" rx="4" fill="#3a2a1a" />
+      <rect x="38" y="110" width="44" height="12" rx="2" fill={`url(#${id}g)`} opacity="0.85" />
+    </svg>
+  );
+}
+
 export function Pickle({ className = '' }: { className?: string }) {
   const id = `pk${useId().replace(/[^a-zA-Z0-9]/g, '')}`;
   return (
@@ -152,7 +182,7 @@ export function Lanes({
               {trophies > 0 && (
                 <span className="absolute -top-[1.4vh] -right-[1.2vh] flex">
                   {Array.from({ length: trophies }, (_, i) => (
-                    <PickleBadge key={i} className="-ml-[0.8vh] h-[3.6vh] w-[3.6vh] drop-shadow-[0_0.3vh_0.4vh_rgba(0,0,0,0.6)]" />
+                    <PickleTrophy key={i} className="-ml-[0.8vh] h-[4vh] w-[2.2vh] drop-shadow-[0_0.3vh_0.4vh_rgba(0,0,0,0.6)]" />
                   ))}
                 </span>
               )}

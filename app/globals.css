@@ -61,19 +61,20 @@
   color: transparent;
 }
 
-/* a window breathes when its wave leaves: a ~1 s swell, then a slow fade */
+/* a window breathes when its wave leaves: a slow, faint swell, then a long
+   fade. Kept quiet on purpose (Kári: subtle, never shiny). */
 .home-pane-light,
 .home-rim {
   opacity: 0;
-  transition: opacity 2.8s cubic-bezier(0.3, 0, 0.2, 1);
+  transition: opacity 4s cubic-bezier(0.3, 0, 0.2, 1);
 }
 .home-window-lit .home-pane-light {
-  opacity: 0.5;
-  transition: opacity 0.9s ease-in-out;
+  opacity: 0.16;
+  transition: opacity 1.8s ease-in-out;
 }
 .home-window-lit .home-rim {
-  opacity: 0.55;
-  transition: opacity 0.9s ease-in-out;
+  opacity: 0.18;
+  transition: opacity 1.8s ease-in-out;
 }
 
 /* the guest rail */
