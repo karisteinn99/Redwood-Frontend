@@ -4,8 +4,24 @@ import type { Player } from '@shared/party-types';
 
 import { PlayerToken } from '@/app/components/player-token';
 
-import { TAPS, tapCost, FALSE_START_MS, type MiniView, type PartyAction, type PartyView } from './definition';
+import { tokenColor } from '@/app/components/player-token';
+
+import {
+  FALSE_START_MS,
+  GOAL_OPTIONS,
+  MAX_BOTS,
+  TAPS,
+  TROPHY_OPTIONS,
+  tapCost,
+  type FinalReveal,
+  type MiniView,
+  type PartyAction,
+  type PartyView,
+  type Settings,
+} from './definition';
+import { LaneCells, TrophyBadge } from './lanes';
 import { MINI_INFO, placeLabel } from './minis';
+import { humanIds, useHeldReveal, usePeople, type Person } from './people';
 import { PartyBackdrop } from './tv';
 
 // Party night, phone side. Between minigames the phone shows Party night's
@@ -98,20 +114,6 @@ function QuickTap({ m, yourId, send }: { m: Extract<MiniView, { kind: 'quick-tap
       </p>
     </div>
   );
-}
-
-// Holds the last reveal on screen for a moment before the next question.
-function useHeldReveal(id: number | null) {
-  const [held, setHeld] = useState<number | null>(null);
-  const seen = useRef<number | null>(id);
-  useEffect(() => {
-    if (id === null || id === seen.current) return;
-    seen.current = id;
-    setHeld(id);
-    const t = setTimeout(() => setHeld(null), 2600);
-    return () => clearTimeout(t);
-  }, [id]);
-  return held !== null;
 }
 
 function Versus({ m, yourId, send }: { m: Extract<MiniView, { kind: 'versus' }>; yourId: string; send: Send }) {
@@ -210,12 +212,206 @@ function SamePick({ m, yourId, send }: { m: Extract<MiniView, { kind: 'same-pick
   );
 }
 
+function Closest({ m, yourId, send }: { m: Extract<MiniView, { kind: 'closest' }>; yourId: string; send: Send }) {
+  const holding = useHeldReveal(m.reveal?.id ?? null);
+  const [value, setValue] = useState(40);
+  const r = m.reveal;
+  if (holding && r) return <ClosestResult r={r} yourId={yourId} />;
+  if (m.index >= m.total) return null;
+  const bump = (d: number) => setValue((v) => Math.max(0, Math.min(999, v + d)));
+  const locked = m.yourGuess !== null;
+  return (
+    <div className="flex w-full max-w-xs flex-col items-center text-center text-white">
+      <p className="text-sm font-semibold tracking-[0.15em] uppercase opacity-85">
+        Round {m.index + 1} of {m.total}
+      </p>
+      <p className="mt-2 text-2xl font-bold">{locked ? 'Locked in' : 'How many dots on the TV?'}</p>
+      <input
+        type="number"
+        inputMode="numeric"
+        disabled={locked}
+        value={locked ? m.yourGuess! : value}
+        onChange={(e) => setValue(Math.max(0, Math.min(999, Number(e.target.value) || 0)))}
+        className="mt-6 w-40 rounded-2xl bg-white/15 py-3 text-center text-6xl font-bold outline-none [appearance:textfield] focus:bg-white/25 [&::-webkit-inner-spin-button]:appearance-none"
+      />
+      {!locked && (
+        <>
+          <div className="mt-4 grid w-full grid-cols-4 gap-2">
+            {[-10, -1, 1, 10].map((d) => (
+              <button key={d} onClick={() => bump(d)} className="rounded-xl bg-white/15 py-3 text-xl font-bold active:bg-white/30">
+                {d > 0 ? `+${d}` : `−${-d}`}
+              </button>
+            ))}
+          </div>
+          <button onClick={() => send({ type: 'guess', value })} className="mt-6 w-full rounded-2xl bg-white py-4 text-xl font-bold text-[#1d3b2a]">
+            Lock in {value}
+          </button>
+        </>
+      )}
+      <p className="mt-6 opacity-80">{locked ? `${m.answered.length} guessed so far` : 'Look at the TV, not your phone'}</p>
+    </div>
+  );
+}
+
+function ClosestResult({ r, yourId }: { r: Extract<FinalReveal, { kind: 'closest' }>['reveal']; yourId: string }) {
+  const g = r.guesses[yourId];
+  return (
+    <div className="text-center text-white">
+      <p className="text-4xl font-bold">There were {r.answer}</p>
+      <p className="mt-3 text-lg opacity-90">
+        {g === undefined ? 'You didn’t guess' : g === r.answer ? 'Spot on!' : `You said ${g}, off by ${Math.abs(g - r.answer)}`}
+      </p>
+    </div>
+  );
+}
+
+// The final answer of a minigame, on the phone, before its scores.
+function FinalLine({ final, yourId }: { final: FinalReveal; yourId: string }) {
+  if (final.kind === 'closest') {
+    const g = final.reveal.guesses[yourId];
+    return <>There were {final.reveal.answer}{g !== undefined ? `, you said ${g}` : ''}.</>;
+  }
+  if (final.kind === 'versus') {
+    const q = final.reveal.question;
+    return <>Last answer: {q[q.answer].label} ({q[q.answer].value}).</>;
+  }
+  const r = final.reveal;
+  return <>{r.top.length ? `The room picked ${r.top.map((i) => r.prompt.options[i]).join(' and ')}.` : 'Everyone picked differently.'}</>;
+}
+
+const chip = (on: boolean) =>
+  `flex-1 rounded-xl py-3 text-lg font-bold transition ${on ? 'home-gold-fill' : 'bg-white/10 text-[var(--party-text)]'}`;
+
+function Stepper({ value, min, max, onChange }: { value: number; min: number; max: number; onChange: (n: number) => void }) {
+  return (
+    <div className="flex items-center gap-3">
+      <button disabled={value <= min} onClick={() => onChange(value - 1)} className="h-11 w-11 rounded-xl bg-white/10 text-2xl font-bold disabled:opacity-30">
+        −
+      </button>
+      <span className="w-8 text-center text-2xl font-bold">{value}</span>
+      <button disabled={value >= max} onClick={() => onChange(value + 1)} className="h-11 w-11 rounded-xl bg-white/10 text-2xl font-bold disabled:opacity-30">
+        +
+      </button>
+    </div>
+  );
+}
+
+function Setup({ view, players, isHost, send }: { view: PartyView; players: Player[]; isHost: boolean; send: Send }) {
+  const s = view.settings;
+  const host = players.find((p) => p.isHost);
+  if (!isHost) {
+    return (
+      <div className="flex w-full flex-col items-center gap-5 font-[family-name:var(--font-read)] text-[var(--party-text)]">
+        <PartyBackdrop />
+        <div className={card}>
+          <p className="text-sm tracking-[0.2em] text-[var(--party-text-muted)] uppercase">Party night</p>
+          <p className="mt-2 font-[family-name:var(--font-display)] text-3xl font-bold">Almost ready</p>
+          <p className="mt-3 text-lg">{host?.name ?? 'The host'} is setting up the night.</p>
+          <p className="mt-3 text-[var(--party-text-muted)]">
+            {s.goal} points for a trophy · first to {s.trophies}
+          </p>
+        </div>
+      </div>
+    );
+  }
+  const set = (patch: Partial<Settings>) => send({ type: 'settings', settings: patch });
+  const total = players.length + s.bots;
+  const row = 'flex items-center justify-between gap-3';
+  return (
+    <div className="flex w-full flex-col items-center gap-4 font-[family-name:var(--font-read)] text-[var(--party-text)]">
+      <PartyBackdrop />
+      <div className={`${card} space-y-5 text-left`}>
+        <div className="text-center">
+          <p className="text-sm tracking-[0.2em] text-[var(--party-text-muted)] uppercase">Party night</p>
+          <p className="mt-1 font-[family-name:var(--font-display)] text-3xl font-bold">Set up the night</p>
+        </div>
+        <div>
+          <p className="mb-2 font-semibold">Points for a trophy</p>
+          <div className="flex gap-2">
+            {GOAL_OPTIONS.map((g) => (
+              <button key={g} onClick={() => set({ goal: g })} className={chip(s.goal === g)}>
+                {g}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div>
+          <p className="mb-2 font-semibold">Trophies to win</p>
+          <div className="flex gap-2">
+            {TROPHY_OPTIONS.map((t) => (
+              <button key={t} onClick={() => set({ trophies: t })} className={chip(s.trophies === t)}>
+                {t}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div>
+          <div className={row}>
+            <p className="font-semibold">Last sprint</p>
+            <button onClick={() => set({ sprint: !s.sprint })} className={`rounded-full px-4 py-1.5 font-bold ${s.sprint ? 'home-gold-fill' : 'bg-white/10'}`}>
+              {s.sprint ? 'On' : 'Off'}
+            </button>
+          </div>
+          {s.sprint && (
+            <div className={`${row} mt-2`}>
+              <p className="text-sm text-[var(--party-text-muted)]">Starts after</p>
+              <Stepper value={s.line} min={1} max={s.goal - 1} onChange={(n) => set({ line: n })} />
+            </div>
+          )}
+          <p className="mt-1 text-sm text-[var(--party-text-muted)]">
+            {s.sprint ? 'Past the line, the bottom places lose points.' : 'Nobody loses points.'}
+          </p>
+        </div>
+        <div className="border-t border-white/10 pt-4">
+          <div className={row}>
+            <p className="font-semibold">Test bots</p>
+            <Stepper value={s.bots} min={0} max={MAX_BOTS} onChange={(n) => set({ bots: n })} />
+          </div>
+          <p className="mt-1 text-sm text-[var(--party-text-muted)]">Computer players that answer on their own. For trying it out.</p>
+        </div>
+      </div>
+      <button disabled={total < 2} onClick={() => send({ type: 'begin' })} className={`${goldButton} disabled:opacity-40`}>
+        Start the night
+      </button>
+      {total < 2 && <p className="text-[var(--party-text-muted)]">Add a bot or a player first.</p>}
+    </div>
+  );
+}
+
+function MyLane({ view, me, change }: { view: PartyView; me: Person; change: number }) {
+  const id = view.yourId!;
+  const trophies = view.trophies[id] ?? 0;
+  return (
+    <div className={`${card} py-4`}>
+      <div className="mb-3 flex items-center justify-between">
+        <span className="font-semibold">Your points</span>
+        <span className="flex items-center gap-1">
+          {Array.from({ length: view.settings.trophies }, (_, i) => (
+            <TrophyBadge key={i} className={`h-7 w-6 ${i < trophies ? '' : 'opacity-20 grayscale'}`} />
+          ))}
+        </span>
+      </div>
+      <LaneCells
+        color={tokenColor(me.avatar)}
+        points={view.points[id] ?? 0}
+        change={change}
+        goal={view.settings.goal}
+        line={view.settings.line}
+        sprint={view.settings.sprint}
+        height="22px"
+        font="12px"
+      />
+    </div>
+  );
+}
+
 export function PartyNightPhone({ view, players, send }: { view: PartyView; players: Player[]; send: Send }) {
   const yourId = view.yourId!;
-  const me = players.find((p) => p.id === yourId);
-  const isHost = !!me?.isHost;
+  const who = usePeople(view, players);
+  const isHost = !!players.find((p) => p.id === yourId)?.isHost;
   const info = MINI_INFO[view.miniId];
-  const myStep = view.steps[yourId] ?? 0;
+
+  if (view.stage === 'setup') return <Setup view={view} players={players} isHost={isHost} send={send} />;
 
   if (view.stage === 'play') {
     return (
@@ -225,6 +421,7 @@ export function PartyNightPhone({ view, players, send }: { view: PartyView; play
         {view.mini.kind === 'quick-tap' && <QuickTap m={view.mini} yourId={yourId} send={send} />}
         {view.mini.kind === 'versus' && <Versus m={view.mini} yourId={yourId} send={send} />}
         {view.mini.kind === 'same-pick' && <SamePick m={view.mini} yourId={yourId} send={send} />}
+        {view.mini.kind === 'closest' && <Closest m={view.mini} yourId={yourId} send={send} />}
         {isHost && (
           <button onClick={() => send({ type: 'skip' })} className="mt-10 text-sm text-white/70 underline underline-offset-4">
             Stop waiting for the others
@@ -234,63 +431,80 @@ export function PartyNightPhone({ view, players, send }: { view: PartyView; play
     );
   }
 
-  const placing = view.result?.placings.find((p) => p.id === yourId);
+  const result = view.result;
+  const placing = result?.placings.find((p) => p.id === yourId);
+  const gotTrophy = !!result?.trophyIds.includes(yourId);
+  const humans = humanIds(view);
+  const change = gotTrophy ? 0 : (placing?.change ?? 0);
   return (
     <div className="flex w-full flex-col items-center gap-5 font-[family-name:var(--font-read)] text-[var(--party-text)]">
       <PartyBackdrop />
-      {(view.stage === 'intro' || view.stage === 'results') && (
-        <div className={`${card} order-2`}>
-          <p className="text-sm text-[var(--party-text-muted)]">{view.stage === 'results' ? 'Up next · ' : ''}Minigame {view.round}</p>
-          <p className="mt-1 font-[family-name:var(--font-display)] text-3xl font-bold">{info.name}</p>
-          <p className="mt-3 text-lg leading-snug">{info.phone}</p>
-          <span className="mx-auto mt-5 block h-2 w-16 rounded-full" style={{ background: info.color }} />
-        </div>
-      )}
-      {(view.stage === 'results' || view.stage === 'over') && placing && (
-        <div className={card}>
-          <p className="text-sm text-[var(--party-text-muted)]">{view.result && MINI_INFO[view.result.mini].name}</p>
-          <p className="mt-1 font-[family-name:var(--font-display)] text-6xl font-bold text-[var(--home-gold)]">
-            {placeLabel(placing.place)}
-          </p>
-          <p className="mt-2 text-xl font-semibold">
-            {placing.gain ? `+${placing.gain} ${placing.gain === 1 ? 'step' : 'steps'}` : 'No steps this time'}
-          </p>
-          <p className="mt-1 text-[var(--party-text-muted)]">{placing.detail}</p>
-        </div>
-      )}
-      {view.stage === 'over' ? (
+      {view.stage === 'over' && (
         <div className={card}>
           <div className="flex justify-center gap-2">
             {view.winnerIds.map((id) => (
-              <PlayerToken key={id} avatar={players.find((p) => p.id === id)?.avatar ?? ''} className="h-16 w-16" />
+              <PlayerToken key={id} avatar={who(id).avatar} className="h-16 w-16" />
             ))}
           </div>
           <p className="mt-3 text-2xl font-bold">
-            {view.winnerIds.includes(yourId) ? 'You win the night!' : `${view.winnerIds.map((id) => players.find((p) => p.id === id)?.name ?? '?').join(' and ')} won`}
+            {view.winnerIds.includes(yourId) ? 'You win the night!' : `${view.winnerIds.map((id) => who(id).name).join(' and ')} won the night`}
           </p>
         </div>
-      ) : (
-        <p className="rounded-full bg-[color-mix(in_srgb,var(--party-bg)_85%,transparent)] px-5 py-2 text-lg">
-          Step <b>{myStep}</b> of {view.goal}
-        </p>
       )}
-      {view.stage !== 'over' && (
-        <div className="order-3 flex w-full flex-col items-center gap-3">
-          {view.ready.includes(yourId) ? (
-            <p className="rounded-2xl border border-[var(--home-gold)] px-6 py-4 text-xl font-bold text-[var(--home-gold)]">
-              Ready · {view.ready.length} of {view.order.length}
-            </p>
+      {(view.stage === 'results' || view.stage === 'over') && placing && result && (
+        <div className={card}>
+          <p className="text-sm text-[var(--party-text-muted)]">{MINI_INFO[result.mini].name}</p>
+          {gotTrophy ? (
+            <div className="mt-2 flex flex-col items-center">
+              <TrophyBadge className="h-16 w-14" />
+              <p className="mt-2 font-[family-name:var(--font-display)] text-3xl font-bold text-[var(--home-gold)]">Trophy!</p>
+            </div>
           ) : (
-            <button onClick={() => send({ type: 'ready' })} className={goldButton}>
-              Ready
-            </button>
+            <>
+              <p className="mt-1 font-[family-name:var(--font-display)] text-6xl font-bold text-[var(--home-gold)]">
+                {placeLabel(placing.place)}
+              </p>
+              <p className="mt-2 text-xl font-semibold" style={{ color: change < 0 ? '#ff9f8a' : undefined }}>
+                {change > 0 ? `+${change} points` : change < 0 ? `−${-change} points` : 'No points this time'}
+              </p>
+            </>
           )}
-          {isHost && view.ready.length < view.order.length && (
-            <button onClick={() => send({ type: 'go' })} className="text-sm text-[var(--party-text-muted)] underline underline-offset-4">
-              Start without everyone
-            </button>
+          <p className="mt-1 text-[var(--party-text-muted)]">{placing.detail}</p>
+          {result.final && (
+            <p className="mt-2 text-sm text-[var(--party-text-muted)]">
+              <FinalLine final={result.final} yourId={yourId} />
+            </p>
           )}
         </div>
+      )}
+      {view.stage !== 'over' && <MyLane view={view} me={who(yourId)} change={change} />}
+      {(view.stage === 'intro' || view.stage === 'results') && (
+        <>
+          <div className={card}>
+            <p className="text-sm text-[var(--party-text-muted)]">
+              {view.stage === 'results' ? 'Up next · ' : ''}Minigame {view.round}
+            </p>
+            <p className="mt-1 font-[family-name:var(--font-display)] text-3xl font-bold">{info.name}</p>
+            <p className="mt-3 text-lg leading-snug">{info.phone}</p>
+            <span className="mx-auto mt-5 block h-2 w-16 rounded-full" style={{ background: info.color }} />
+          </div>
+          <div className="flex w-full flex-col items-center gap-3">
+            {view.ready.includes(yourId) ? (
+              <p className="rounded-2xl border border-[var(--home-gold)] px-6 py-4 text-xl font-bold text-[var(--home-gold)]">
+                Ready · {view.ready.length} of {humans.length}
+              </p>
+            ) : (
+              <button onClick={() => send({ type: 'ready' })} className={goldButton}>
+                Ready
+              </button>
+            )}
+            {isHost && view.ready.length < humans.length && (
+              <button onClick={() => send({ type: 'go' })} className="text-sm text-[var(--party-text-muted)] underline underline-offset-4">
+                Start without everyone
+              </button>
+            )}
+          </div>
+        </>
       )}
     </div>
   );

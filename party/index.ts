@@ -78,7 +78,7 @@ const DEFAULT_AWAY_GRACE_MS = 5000;
 // snapshot with a different version has its game dropped back to the lobby
 // on load — seats/host are unaffected — instead of restoring a shape the
 // current game code doesn't expect.
-const GAME_STATE_VERSION = 3; // bumped: Go Fish cards gained suits (number[] → {rank, suit}[])
+const GAME_STATE_VERSION = 4; // bumped: Party night v2 (points, trophies, setup, bots)
 
 interface Snapshot {
   gameStateVersion: number;

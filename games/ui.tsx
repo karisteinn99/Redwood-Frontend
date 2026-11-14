@@ -53,11 +53,11 @@ export const GAME_UI: Record<string, GameUi> = {
   'party-night': {
     Tv: PartyNightTv,
     Phone: PartyNightPhone,
-    blurb: 'Quick minigames back to back. Climb the tower to win.',
+    blurb: 'Quick minigames back to back. Race to the trophies.',
     tvRules: [
       ['Short minigames, one after another', 'Tapping, guessing, reading the room. About a minute each.'],
-      ['Your place climbs the tower', '1st climbs 3 steps, 2nd climbs 2, 3rd climbs 1.'],
-      ['First to the top wins', 'Twelve steps. The host moves things along.'],
+      ['Your place earns points', '1st gets 3, 2nd gets 2, 3rd gets 1. Reach 15 for a trophy.'],
+      ['First to two trophies wins', 'Past the line, the last places lose points. The host can change all this.'],
     ],
   },
 };
