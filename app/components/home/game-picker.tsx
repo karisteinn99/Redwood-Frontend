@@ -107,6 +107,15 @@ export type StageMode = 'host-browse' | 'host-upnext' | 'guest-browse' | 'guest-
 const outlineButton =
   'w-full rounded-xl border-2 border-[var(--home-brass)] bg-[color-mix(in_srgb,var(--home-surface)_88%,transparent)] py-[14px] text-xl font-bold text-[var(--home-gold)] transition hover:border-[var(--home-gold)]';
 
+export function ClockIcon({ className = '' }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" aria-hidden="true">
+      <circle cx="12" cy="12" r="9" />
+      <path d="M12 7v5l3 2" />
+    </svg>
+  );
+}
+
 export function GameStage({
   game,
   players,
@@ -141,6 +150,12 @@ export function GameStage({
         <GameTitle gameId={game.id} name={game.name} />
       </div>
       {GAME_UI[game.id]?.blurb && <p className="mt-1 text-[var(--home-text-muted)]">{GAME_UI[game.id].blurb}</p>}
+      {GAME_UI[game.id]?.playTime && (
+        <p className="mt-2 flex items-center justify-center gap-1.5 text-sm font-semibold text-[var(--home-gold)]">
+          <ClockIcon className="h-4 w-4" />
+          About {GAME_UI[game.id].playTime}
+        </p>
+      )}
       <div className="mt-6 h-[72px]">
         <p className={`text-lg ${line.problem ? 'text-[var(--home-ember)]' : 'text-[var(--home-text-muted)]'}`}>
           {line.text}

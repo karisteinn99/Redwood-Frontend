@@ -8,6 +8,7 @@ import { playersLine } from '@/lib/players-line';
 import type { GameInfo } from '@shared/game';
 import type { Player } from '@shared/party-types';
 
+import { ClockIcon } from './game-picker';
 import { GuestRail } from './guest-rail';
 import { HomeField, type WaveSource } from './home-field';
 import { HomeLogo } from './home-logo';
@@ -348,6 +349,15 @@ function UpNextCopy({ game, count, visible }: { game: GameInfo; count: number; v
       >
         {playersLine(game, count).text}
       </p>
+      {GAME_UI[game.id]?.playTime && (
+        <p
+          className="absolute flex w-[330px] items-center justify-center gap-3 text-[30px] font-semibold text-[var(--home-gold)]"
+          style={{ left: WINDOW_TO.x, top: WINDOW_TO.y + 274 * WINDOW_TO.scale + 76, ...fade(shown, 1300) }}
+        >
+          <ClockIcon className="h-[30px] w-[30px]" />
+          About {GAME_UI[game.id].playTime}
+        </p>
+      )}
       <div className="absolute top-[146px] left-[444px] w-[700px]">
         <p
           className="mb-3 text-[26px] tracking-[0.3em] text-[var(--home-text-muted)] uppercase"
