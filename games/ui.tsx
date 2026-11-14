@@ -8,6 +8,8 @@ import { GoFishTv } from './go-fish/tv';
 import { LiarsDicePhone } from './liars-dice/phone';
 import { LiarsDiceTutorial } from './liars-dice/tutorial';
 import { LiarsDiceTv } from './liars-dice/tv';
+import { PartyNightPhone } from './party-night/phone';
+import { PartyNightTv } from './party-night/tv';
 import type { RulesTheme } from './rules-sheet';
 
 // Kept separate from the server registry (games/index.ts) so React never
@@ -46,6 +48,16 @@ export const GAME_UI: Record<string, GameUi> = {
       ['Ask someone for a rank', 'You must already hold one. “Got any sevens?”'],
       ['They hand them over, or Go Fish', 'Draw from the pond. Got what you asked for? Go again.'],
       ['Four of a kind is a book', 'When the cards run out, most books wins.'],
+    ],
+  },
+  'party-night': {
+    Tv: PartyNightTv,
+    Phone: PartyNightPhone,
+    blurb: 'Quick minigames back to back. Climb the tower to win.',
+    tvRules: [
+      ['Short minigames, one after another', 'Tapping, guessing, reading the room. About a minute each.'],
+      ['Your place climbs the tower', '1st climbs 3 steps, 2nd climbs 2, 3rd climbs 1.'],
+      ['First to the top wins', 'Twelve steps. The host moves things along.'],
     ],
   },
 };
