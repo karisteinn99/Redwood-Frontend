@@ -27,6 +27,7 @@ export interface LiarsDiceState {
   lastReveal: Reveal | null; // kept on screen until every player (or the host) continues
   revealAcks: string[]; // player ids who've pressed "continue" on the current lastReveal
   winnerId: string | null;
+  gone?: string[]; // left mid-game: the reveal doesn't wait for them
 }
 
 export type LiarsDiceAction =
@@ -43,6 +44,8 @@ export interface LiarsDicePublicView {
   lastReveal: Reveal | null;
   revealAcks: string[];
   winnerId: string | null;
+  // Who the reveal is waiting on: everyone still in the room.
+  waitingFor: string[];
 }
 
 export interface LiarsDicePlayerView extends LiarsDicePublicView {
@@ -82,8 +85,11 @@ function publicView(state: LiarsDiceState): LiarsDicePublicView {
     lastReveal: state.lastReveal,
     revealAcks: state.revealAcks,
     winnerId: state.winnerId,
+    waitingFor: here(state),
   };
 }
+
+const here = (s: LiarsDiceState) => s.order.filter((id) => !(s.gone ?? []).includes(id));
 
 export const liarsDiceGame = defineGame<LiarsDiceState, LiarsDiceAction, LiarsDicePublicView | LiarsDicePlayerView>({
   id: 'liars-dice',
@@ -118,7 +124,7 @@ export const liarsDiceGame = defineGame<LiarsDiceState, LiarsDiceAction, LiarsDi
       const revealAcks = state.revealAcks.includes(playerId)
         ? state.revealAcks
         : [...state.revealAcks, playerId];
-      const everyoneAcked = state.order.length > 0 && state.order.every((id) => revealAcks.includes(id));
+      const everyoneAcked = here(state).length > 0 && here(state).every((id) => revealAcks.includes(id));
       return {
         state: everyoneAcked
           ? { ...state, lastReveal: null, revealAcks: [] }
@@ -226,5 +232,14 @@ export const liarsDiceGame = defineGame<LiarsDiceState, LiarsDiceAction, LiarsDi
 
   isFinished(state) {
     return state.winnerId !== null;
+  },
+
+  presence(state, present) {
+    const gone = state.order.filter((id) => !present.includes(id));
+    const s = { ...state, gone };
+    // Everyone still here had already pressed continue: move on.
+    if (s.lastReveal && here(s).length > 0 && here(s).every((id) => s.revealAcks.includes(id)))
+      return { ...s, lastReveal: null, revealAcks: [] };
+    return s;
   },
 });

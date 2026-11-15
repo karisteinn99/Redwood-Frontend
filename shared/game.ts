@@ -29,6 +29,10 @@ export interface GameDefinition<S, A, V> extends GameInfo {
   reduce(state: S, action: A, playerId: string, ctx: GameContext): ReduceResult<S>;
   viewFor(state: S, viewer: Viewer): V;
   isFinished(state: S): boolean;
+  // Called when someone in the game leaves (their away grace ran out) or
+  // comes back, with the ids still here. Games use it so nothing waits on a
+  // player who has gone: ready counts, acknowledgements, answers.
+  presence?(state: S, present: string[]): S;
 }
 
 export function defineGame<S, A, V>(def: GameDefinition<S, A, V>): GameDefinition<S, A, V> {

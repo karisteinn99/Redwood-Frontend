@@ -278,9 +278,25 @@ export class HomeRoom {
       }
     }
     this.ensureHost();
+    this.syncPresence();
     this.broadcastState();
     this.persist();
     await this.scheduleAlarm();
+  }
+
+  // Tells the game who is still here, so it never waits on someone who left.
+  private syncPresence() {
+    if (this.phase !== 'playing' || !this.gameId || this.gameState === null) return;
+    const def = GAMES[this.gameId];
+    if (!def?.presence) return;
+    const present = (this.gamePlayerIds ?? []).filter((id) => {
+      const seat = this.seats.get(id);
+      return !!seat && this.present(seat);
+    });
+    const next = def.presence(this.gameState, present);
+    if (JSON.stringify(next) === JSON.stringify(this.gameState)) return;
+    this.gameState = next;
+    this.broadcastViews();
   }
 
   async webSocketClose(ws: PartyWebSocket) {
@@ -511,6 +527,7 @@ export class HomeRoom {
     this.liveSockets.set(seat.id, ws);
     ws.serializeAttachment({ role: 'player', seatId: seat.id } satisfies Role);
     this.ensureHost();
+    this.syncPresence();
 
     const you: ServerMessage = {
       type: 'you',

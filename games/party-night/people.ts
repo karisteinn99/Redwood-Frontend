@@ -22,7 +22,9 @@ export function usePeople(view: PartyView, players: Player[]) {
   return (id: string): Person => map[id] ?? { name: '?', avatar: '', bot: false };
 }
 
-export const humanIds = (view: PartyView) => view.order.filter((id) => !view.bots.some((b) => b.id === id));
+// The humans still in the room (not bots, not people who left).
+export const humanIds = (view: PartyView) =>
+  view.order.filter((id) => !view.bots.some((b) => b.id === id) && !(view.gone ?? []).includes(id));
 
 // Holds the last reveal on screen for a moment before the next question.
 export function useHeldReveal(id: number | null, ms = 2600) {

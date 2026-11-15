@@ -108,6 +108,8 @@ export interface PartyState {
   ready: string[];
   result: { mini: MiniId; placings: Placing[]; trophyIds: string[]; final: FinalReveal | null } | null;
   winnerIds: string[];
+  // Players who left mid-game: nothing waits on them (optional for saved games).
+  gone?: string[];
 }
 
 // The last question's answer, kept with the results so screens can show it
@@ -184,10 +186,14 @@ export interface PartyView {
   mini: MiniView;
   result: PartyState['result'];
   winnerIds: string[];
+  gone: string[];
 }
 
 const isBot = (id: string) => id.startsWith('bot-');
 const humans = (s: PartyState) => s.order.filter((id) => !isBot(id));
+// Everyone still in the room: bots, and humans who haven't left.
+const here = (s: PartyState) => s.order.filter((id) => !(s.gone ?? []).includes(id));
+const humansHere = (s: PartyState) => here(s).filter((id) => !isBot(id));
 
 function shuffle<T>(xs: T[], random: () => number): T[] {
   const a = [...xs];
@@ -421,7 +427,9 @@ function nextMini(state: PartyState, random: () => number): PartyState {
 function botsPlay(state: PartyState, random: () => number): PartyState {
   let s = state;
   for (let guard = 0; guard < 50 && s.stage === 'play'; guard++) {
+    if (humansHere(s).length === 0) return s;
     const bots = s.bots.map((b) => b.id);
+    const away = s.gone ?? [];
     const m = s.mini;
     let next: Mini = m;
     if (m.kind === 'quick-tap') {
@@ -431,6 +439,8 @@ function botsPlay(state: PartyState, random: () => number): PartyState {
           taps[id] = Array.from({ length: TAPS }, () => (random() < 0.1 ? -1 : 200 + Math.floor(random() * 260)));
         }
       }
+      // Someone who left misses their remaining taps.
+      for (const id of away) if (taps[id] && taps[id].length < TAPS) taps[id] = [...taps[id], ...Array(TAPS - taps[id].length).fill(-1)];
       next = { ...m, taps };
     } else if (m.kind === 'versus' && m.index < m.questions.length) {
       const picks = { ...m.picks };
@@ -439,12 +449,12 @@ function botsPlay(state: PartyState, random: () => number): PartyState {
         if (m.alive.includes(id) && !picks[id]) picks[id] = random() < 0.65 ? answer : answer === 'a' ? 'b' : 'a';
       }
       next = { ...m, picks };
-      if (next.alive.every((id) => (next as Versus).picks[id])) next = resolveVersus(next as Versus);
+      if (next.alive.every((id) => (next as Versus).picks[id] || away.includes(id))) next = resolveVersus(next as Versus);
     } else if (m.kind === 'same-pick' && m.index < m.prompts.length) {
       const picks = { ...m.picks };
       for (const id of bots) if (picks[id] === undefined) picks[id] = Math.floor(random() * 4);
       next = { ...m, picks };
-      if (s.order.every((id) => (next as SamePick).picks[id] !== undefined)) next = resolvePick(next as SamePick, s.order);
+      if (here(s).every((id) => (next as SamePick).picks[id] !== undefined)) next = resolvePick(next as SamePick, s.order);
     } else if (m.kind === 'closest' && m.index < m.fields.length) {
       const guesses = { ...m.guesses };
       const answer = m.fields[m.index].dots.length;
@@ -452,7 +462,7 @@ function botsPlay(state: PartyState, random: () => number): PartyState {
         if (guesses[id] === undefined) guesses[id] = Math.max(1, answer + Math.round((random() - 0.5) * answer * 0.6));
       }
       next = { ...m, guesses };
-      if (s.order.every((id) => (next as Closest).guesses[id] !== undefined)) next = resolveClosest(next as Closest, s.order);
+      if (here(s).every((id) => (next as Closest).guesses[id] !== undefined)) next = resolveClosest(next as Closest, s.order);
     }
     const after = finishIfDone({ ...s, mini: next }, random);
     if (JSON.stringify(after) === JSON.stringify(s)) return s;
@@ -538,7 +548,7 @@ export const partyNightGame = defineGame<PartyState, PartyAction, PartyView>({
       if (!waiting) return { error: 'Nothing to get ready for.' };
       if (state.ready.includes(playerId)) return { state };
       const ready = [...state.ready, playerId];
-      const all = humans(state).every((id) => ready.includes(id));
+      const all = humansHere(state).every((id) => ready.includes(id));
       return { state: all ? botsPlay({ ...state, stage: 'play', ready: [] }, ctx.random) : { ...state, ready } };
     }
     if (action.type === 'go') {
@@ -575,20 +585,20 @@ export const partyNightGame = defineGame<PartyState, PartyAction, PartyView>({
       if (m.picks[playerId]) return { error: 'You’ve already answered.' };
       if (action.choice !== 'a' && action.choice !== 'b') return { error: 'Pick one of the two.' };
       const v: Versus = { ...m, picks: { ...m.picks, [playerId]: action.choice } };
-      next = v.alive.every((id) => v.picks[id]) ? resolveVersus(v) : v;
+      next = v.alive.every((id) => v.picks[id] || (state.gone ?? []).includes(id)) ? resolveVersus(v) : v;
     } else if (action.type === 'choose') {
       if (m.kind !== 'same-pick') return { error: 'Not a picking game.' };
       if (m.picks[playerId] !== undefined) return { error: 'You’ve already picked.' };
       if (![0, 1, 2, 3].includes(action.option)) return { error: 'Pick one of the four.' };
       const p: SamePick = { ...m, picks: { ...m.picks, [playerId]: action.option } };
-      next = state.order.every((id) => p.picks[id] !== undefined) ? resolvePick(p, state.order) : p;
+      next = here(state).every((id) => p.picks[id] !== undefined) ? resolvePick(p, state.order) : p;
     } else if (action.type === 'guess') {
       if (m.kind !== 'closest') return { error: 'Not a guessing game.' };
       if (m.guesses[playerId] !== undefined) return { error: 'You’ve already guessed.' };
       const value = Math.round(action.value);
       if (!Number.isFinite(value) || value < 0 || value > 999) return { error: 'Guess a number from 0 to 999.' };
       const c: Closest = { ...m, guesses: { ...m.guesses, [playerId]: value } };
-      next = state.order.every((id) => c.guesses[id] !== undefined) ? resolveClosest(c, state.order) : c;
+      next = here(state).every((id) => c.guesses[id] !== undefined) ? resolveClosest(c, state.order) : c;
     } else {
       return { error: 'Unknown move.' };
     }
@@ -658,7 +668,18 @@ export const partyNightGame = defineGame<PartyState, PartyAction, PartyView>({
       mini,
       result: state.result,
       winnerIds: state.winnerIds,
+      gone: state.gone ?? [],
     };
+  },
+
+  presence(state, present) {
+    const gone = humans(state).filter((id) => !present.includes(id));
+    let s: PartyState = { ...state, gone, ready: state.ready.filter((id) => !gone.includes(id)) };
+    // Everyone still here is ready: go.
+    const waiting = s.stage === 'intro' || s.stage === 'results';
+    const left = humansHere(s);
+    if (waiting && left.length > 0 && left.every((id) => s.ready.includes(id))) s = { ...s, stage: 'play', ready: [] };
+    return botsPlay(s, Math.random);
   },
 
   isFinished: (state) => state.stage === 'over',

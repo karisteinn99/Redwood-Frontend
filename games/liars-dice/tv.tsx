@@ -78,7 +78,7 @@ export function LiarsDiceTv({ view, players }: { view: LiarsDicePublicView; play
               {verdictSentence(reveal, nameOf)}
             </p>
             <p className="mt-8 text-[var(--ship-text-muted)]">
-              {view.revealAcks.length}/{view.order.length} ready to continue
+              {view.revealAcks.filter((id) => view.waitingFor.includes(id)).length}/{view.waitingFor.length} ready to continue
             </p>
           </div>
         )}
