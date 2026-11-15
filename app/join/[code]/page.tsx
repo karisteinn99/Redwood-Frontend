@@ -8,6 +8,7 @@ import { AVATARS, AVATAR_NAMES, isAvatar } from '@shared/avatars';
 import { GameList, GameStage, UpNextToast } from '@/app/components/home/game-picker';
 import { HomeWallBackdrop } from '@/app/components/home/home-wall-backdrop';
 import { LoadingScreen } from '@/app/components/home/loading-screen';
+import { HostMenu } from '@/app/components/host-menu';
 import { PlayerToken } from '@/app/components/player-token';
 import type { HelloMessage, Player } from '@shared/party-types';
 import { GAME_UI } from '@/games/ui';
@@ -531,24 +532,25 @@ export default function JoinPage({
         ) : (
           <p className="text-xl">Loading…</p>
         )}
-        {me.isHost && (
-          <div className="mt-12 w-full max-w-xs space-y-3">
-            <button
-              onClick={() =>
-                send({ type: 'joinOverlay', open: !state.joinOverlay })
-              }
-              className="w-full rounded-xl bg-white/10 py-3 text-lg font-medium transition hover:bg-white/20"
-            >
-              {state.joinOverlay ? 'Hide the join code' : 'Let someone in'}
-            </button>
-            <button
-              onClick={() => send({ type: 'home' })}
-              className="w-full rounded-xl bg-white/10 py-4 text-xl font-bold transition hover:bg-white/20"
-            >
-              Back home
-            </button>
-          </div>
-        )}
+        {me.isHost && dealtIn && gameView && (() => {
+          const menu = GAME_UI[state.gameId]?.hostMenu?.(gameView.view) ?? { actions: [], room: true };
+          return (
+            <HostMenu
+              items={[
+                ...menu.actions.map((a) => ({ label: a.label, onClick: () => send({ type: 'action', action: a.action }) })),
+                ...(menu.room
+                  ? [
+                      {
+                        label: state.joinOverlay ? 'Hide the join code' : 'Let someone in',
+                        onClick: () => send({ type: 'joinOverlay', open: !state.joinOverlay }),
+                      },
+                      { label: 'Back home', confirm: 'End the game for everyone?', onClick: () => send({ type: 'home' }) },
+                    ]
+                  : []),
+              ]}
+            />
+          );
+        })()}
       </div>
     );
   }

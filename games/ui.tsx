@@ -8,7 +8,7 @@ import { GoFishTv } from './go-fish/tv';
 import { LiarsDicePhone } from './liars-dice/phone';
 import { LiarsDiceTutorial } from './liars-dice/tutorial';
 import { LiarsDiceTv } from './liars-dice/tv';
-import { PartyNightPhone } from './party-night/phone';
+import { partyNightHostMenu, PartyNightPhone } from './party-night/phone';
 import { PartyNightTv } from './party-night/tv';
 import type { RulesTheme } from './rules-sheet';
 
@@ -25,6 +25,11 @@ export interface GameUi {
   blurb?: string;
   // Rough length of a whole game, shown on the game page and TV Up next.
   playTime?: string;
+  // What the host's corner menu offers right now. `actions` are this game's
+  // host overrides; `room` says whether the room's own options (let someone
+  // in, back home) fit this moment. Without it: room options only.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  hostMenu?: (view: any) => { actions: { label: string; action: unknown }[]; room: boolean };
   // The game in three short lines for the TV's Up next screen: [heading, line].
   tvRules?: [string, string][];
 }
@@ -57,6 +62,7 @@ export const GAME_UI: Record<string, GameUi> = {
   'party-night': {
     Tv: PartyNightTv,
     Phone: PartyNightPhone,
+    hostMenu: partyNightHostMenu,
     blurb: 'Quick minigames back to back. Win trophies, win the pickle.',
     playTime: '20–30 min',
     tvRules: [

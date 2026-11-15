@@ -64,6 +64,12 @@ Roadmap: `PLAN.md` (index) links to `plans/platform.md`, `plans/home.md` and `pl
 - Responsive fit: prefer fluid sizing (`clamp()` via Tailwind arbitrary values) so a screen shrinks smoothly, and only fall back to a structural layout change (e.g. a `[@media(max-height:...)]:` breakpoint switching stacked→side-by-side) when it's genuinely cramped — see `home-tv.tsx` for the pattern.
 - Keep UI minimal until the game layer works — this applied fully before Home had its own identity; it still applies to anything that doesn't yet.
 
+## Game UX rules (Kári, 2026-11-15) — apply to every game and minigame
+- The host's screen is laid out exactly like everyone else's. Host-only controls never sit in the game's flow (no extra links or buttons that push things down); they live in the corner host menu (`app/components/host-menu.tsx`, top-left ⋯, opposite the "?" rules button).
+- A game says what that menu offers via `GAME_UI[id].hostMenu(view)`: its own overrides (skip, start without everyone) plus `room: boolean` for the room's options (Let someone in, Back home). Keep `room` false while a round/minigame is being played; room options belong between rounds. "Back home" asks once more before ending the game for everyone.
+- Immersive and clean: during play the phone shows only what that player needs right now, in the minigame's own colour. No platform chrome, no explanations that are already on the TV.
+- When Kári critiques one game's UX, assume it applies to the others and carry it over.
+
 ## Dev workflow
 - Run `pnpm party:dev` (`wrangler dev`, port 1999) and `pnpm dev` (port 3000) in separate terminals.
 - Dev bench: `localhost:3000/dev` shows one room's TV and any number of phones side by side ("+ Add player" adds one, each auto-joined by name), so a whole game can be played from one browser. Phones use `/join/<code>?as=<slot>&name=<name>`: `as` gives each its own saved seat, `name` skips the join form. The room and phones live in the bench's URL, so a refresh keeps every seat.

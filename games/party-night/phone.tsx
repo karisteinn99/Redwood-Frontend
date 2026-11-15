@@ -424,6 +424,14 @@ function MyLane({ view, me, change }: { view: PartyView; me: Person; change: num
   );
 }
 
+// The host's corner menu: during a minigame only "stop waiting" (nobody
+// joins mid-minigame); between minigames the room's own options come back.
+export function partyNightHostMenu(view: PartyView) {
+  if (view.stage === 'play') return { actions: [{ label: 'Stop waiting for the others', action: { type: 'skip' } }], room: false };
+  const waiting = (view.stage === 'intro' || view.stage === 'results') && view.ready.length < humanIds(view).length;
+  return { actions: waiting ? [{ label: 'Start without everyone', action: { type: 'go' } }] : [], room: true };
+}
+
 export function PartyNightPhone({ view, players, send }: { view: PartyView; players: Player[]; send: Send }) {
   const yourId = view.yourId!;
   const who = usePeople(view, players);
@@ -441,11 +449,6 @@ export function PartyNightPhone({ view, players, send }: { view: PartyView; play
         {view.mini.kind === 'versus' && <Versus m={view.mini} yourId={yourId} send={send} />}
         {view.mini.kind === 'same-pick' && <SamePick m={view.mini} yourId={yourId} send={send} />}
         {view.mini.kind === 'closest' && <Closest m={view.mini} yourId={yourId} send={send} />}
-        {isHost && (
-          <button onClick={() => send({ type: 'skip' })} className="mt-10 text-sm text-white/70 underline underline-offset-4">
-            Stop waiting for the others
-          </button>
-        )}
       </div>
     );
   }
@@ -516,11 +519,6 @@ export function PartyNightPhone({ view, players, send }: { view: PartyView; play
             ) : (
               <button onClick={() => send({ type: 'ready' })} className={goldButton}>
                 Ready
-              </button>
-            )}
-            {isHost && view.ready.length < humans.length && (
-              <button onClick={() => send({ type: 'go' })} className="text-sm text-[var(--party-text-muted)] underline underline-offset-4">
-                Start without everyone
               </button>
             )}
           </div>
