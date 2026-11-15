@@ -10,7 +10,8 @@ import { PICKS, VERSUS, type PickPrompt, type VersusQuestion } from './content';
 // can add bots for a test run.
 
 export type MiniId = 'quick-tap' | 'versus' | 'same-pick' | 'closest';
-export const MINIS: MiniId[] = ['quick-tap', 'versus', 'same-pick', 'closest'];
+// Same Pick is left out of the rotation (Kári, 2026-11-15); its code stays in case it comes back.
+export const MINIS: MiniId[] = ['quick-tap', 'versus', 'closest'];
 export const GAIN = [3, 2, 1];
 export const TAPS = 3;
 // A tap faster than any human, or a tap before the cue, costs this much.
